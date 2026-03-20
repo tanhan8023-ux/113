@@ -128,6 +128,10 @@ export function ChatScreen({
   const [isLoading, setIsLoading] = useState(false);
   const [inputText, setInputText] = useState('');
 
+  useEffect(() => {
+    (window as any).isUserTyping = inputText.trim().length > 0;
+  }, [inputText]);
+
   const [isTyping, setIsTyping] = useState(false);
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [selectedTransferMsg, setSelectedTransferMsg] = useState<Message | null>(null);
@@ -1500,6 +1504,14 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
 
   const handleSend = async (text: string, msgType: 'text' | 'transfer' | 'relativeCard' | 'sticker' | 'listenTogether' | 'system' | 'image' | 'location' = 'text', amount?: number, transferNote?: string, relativeCard?: { limit: number; status: 'active' | 'cancelled' }, sticker?: string, theaterId?: string, imageUrl?: string, hidden?: boolean, imageDescription?: string, location?: { latitude: number; longitude: number; address?: string }) => {
     if ((!text.trim() && msgType === 'text') || (!currentPersona && !currentGroup)) return;
+
+    // Trigger OneSignal prompt on first user interaction
+    if ((window as any).OneSignal) {
+      (window as any).OneSignal.Slidedown.promptPush().catch(() => {});
+    }
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
 
     // Prevent double sending
     if (!theaterId) {

@@ -1560,7 +1560,17 @@ export default function App() {
     setTypingPersonas(prev => ({ ...prev, [personaId]: true }));
 
     aiResponseTimeouts.current[personaId] = setTimeout(async () => {
+      const currentTimeoutId = aiResponseTimeouts.current[personaId];
       try {
+        // Wait until the user finishes typing
+        while ((window as any).isUserTyping) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          // If a new request was triggered while waiting, abort this one
+          if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
+            return;
+          }
+        }
+
         const defaultStickers = ['大笑', '哭泣', '猫猫头', '点赞', '心碎', '思考', '开心', '难过', '生气', '爱心', '大哭', '酷', '睡觉'];
         const customStickerNames = userProfile.stickers?.map(s => s.name) || [];
         const allStickers = [...defaultStickers, ...customStickerNames].join(', ');
@@ -1723,7 +1733,7 @@ export default function App() {
           setTypingPersonas(prev => ({ ...prev, [personaId]: false }));
         }
       }
-    }, 1000);
+    }, 2000);
   }, [personas, messages, apiSettings, worldbook, userProfile, subscriptionId, songs, currentSongIndex, listeningWithPersonaId]);
 
   const handleSendMessage = React.useCallback(async (text: string, personaId: string) => {
