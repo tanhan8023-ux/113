@@ -578,7 +578,28 @@ export function ApiSettingsScreen({ settings, personas: initialPersonas, userPro
             </button>
           </div>
 
-          <div className="pt-4 border-t border-neutral-100">
+          <div className="pt-4 border-t border-neutral-100 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex flex-col">
+                <span className="text-[13px] font-medium text-neutral-800">浏览器通知权限</span>
+                <span className="text-[11px] text-neutral-500">
+                  {('Notification' in window) ? (
+                    Notification.permission === 'granted' ? '✅ 已授权' :
+                    Notification.permission === 'denied' ? '❌ 已拒绝 (请在浏览器设置中开启)' :
+                    '⚠️ 未授权'
+                  ) : '🚫 浏览器不支持'}
+                </span>
+              </div>
+              {('Notification' in window) && Notification.permission === 'default' && (
+                <button 
+                  onClick={() => Notification.requestPermission().then(() => setLogs(prev => [...prev, `> Notification permission: ${Notification.permission}`]))}
+                  className="bg-blue-500 text-white text-[12px] px-3 py-1.5 rounded-lg active:opacity-70"
+                >
+                  请求授权
+                </button>
+              )}
+            </div>
+
             <button 
               onClick={onTestPush}
               className="w-full bg-orange-500 text-white font-medium py-3 rounded-xl active:bg-orange-600 transition-colors shadow-sm shadow-orange-500/30 text-[13px]"

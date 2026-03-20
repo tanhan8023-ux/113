@@ -406,10 +406,55 @@ export default function App() {
   const lastNotifiedMsgId = useRef<string | null>(null);
 
   useEffect(() => {
+    localforage.getItem<Message[]>('messages').then(m => {
+      if (m) {
+        setMessages(m);
+        if (m.length > 0) {
+          lastNotifiedMsgId.current = m[m.length - 1].id;
+        }
+      }
+    });
+  }, []);
+  useEffect(() => {
+    localforage.setItem('messages', messages);
+  }, [messages]);
+  const [moments, setMoments] = useState<Moment[]>([{
+    id: 'm1',
+    authorId: 'p1',
+    text: '今天天气真好呀，想和你一起去散步~ 🐾 记得多穿点衣服哦！',
+    timestamp: '1小时前',
+    likedByIds: ['user'],
+    comments: []
+  }]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notification, setNotification] = useState<{title: string, body: string, personaId?: string} | null>(null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
+  const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
+  const [followedAuthorIds, setFollowedAuthorIds] = useState<string[]>(['p1']);
+  const [blockedAuthorIds, setBlockedAuthorIds] = useState<string[]>([]);
+  const [xhsPrivateChats, setXhsPrivateChats] = useState<Record<string, { text: string, isMe: boolean, time: number, isSystem?: boolean }[]>>({
+    'p1': [
+      { text: '你好呀喵~ 看到你关注我了，好开心喵！', isMe: false, time: Date.now() - 3600000 }
+    ]
+  });
+  const [treeHolePrivateChats, setTreeHolePrivateChats] = useState<Record<string, TreeHoleMessage[]>>({});
+  const [treeHolePersonas, setTreeHolePersonas] = useState<Persona[]>([]);
+  const [xhsInitialActiveChatAuthorId, setXhsInitialActiveChatAuthorId] = useState<string | null>(null);
+
+  useEffect(() => {
     if (messages.length === 0) return;
     const lastMessage = messages[messages.length - 1];
     
-    if (lastMessage.role === 'model' && document.hidden && lastMessage.id !== lastNotifiedMsgId.current) {
+    const shouldNotify = lastMessage.role === 'model' && lastMessage.id !== lastNotifiedMsgId.current && (
+      document.hidden || 
+      (currentScreen !== 'chat' && !isLocked) ||
+      (currentScreen === 'chat' && lastMessage.groupId ? currentChatId !== lastMessage.groupId : currentChatId !== lastMessage.personaId)
+    );
+
+    if (shouldNotify) {
+      // Don't notify if it's a theater message
+      if (lastMessage.theaterId) return;
+
       lastNotifiedMsgId.current = lastMessage.id;
       const persona = personas.find(p => p.id === lastMessage.personaId);
       if (persona) {
@@ -453,43 +498,8 @@ export default function App() {
         document.addEventListener('visibilitychange', restoreTitle);
       }
     }
-  }, [messages, personas]);
+  }, [messages, personas, currentScreen, isLocked, currentChatId]);
 
-  useEffect(() => {
-    localforage.getItem<Message[]>('messages').then(m => {
-      if (m) {
-        setMessages(m);
-        if (m.length > 0) {
-          lastNotifiedMsgId.current = m[m.length - 1].id;
-        }
-      }
-    });
-  }, []);
-  useEffect(() => {
-    localforage.setItem('messages', messages);
-  }, [messages]);
-  const [moments, setMoments] = useState<Moment[]>([{
-    id: 'm1',
-    authorId: 'p1',
-    text: '今天天气真好呀，想和你一起去散步~ 🐾 记得多穿点衣服哦！',
-    timestamp: '1小时前',
-    likedByIds: ['user'],
-    comments: []
-  }]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notification, setNotification] = useState<{title: string, body: string, personaId?: string} | null>(null);
-  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
-  const [followedAuthorIds, setFollowedAuthorIds] = useState<string[]>(['p1']);
-  const [blockedAuthorIds, setBlockedAuthorIds] = useState<string[]>([]);
-  const [xhsPrivateChats, setXhsPrivateChats] = useState<Record<string, { text: string, isMe: boolean, time: number, isSystem?: boolean }[]>>({
-    'p1': [
-      { text: '你好呀喵~ 看到你关注我了，好开心喵！', isMe: false, time: Date.now() - 3600000 }
-    ]
-  });
-  const [treeHolePrivateChats, setTreeHolePrivateChats] = useState<Record<string, TreeHoleMessage[]>>({});
-  const [treeHolePersonas, setTreeHolePersonas] = useState<Persona[]>([]);
-  const [xhsInitialActiveChatAuthorId, setXhsInitialActiveChatAuthorId] = useState<string | null>(null);
   const [treeHolePosts, setTreeHolePosts] = useState<TreeHolePost[]>([
     {
       id: 'th1',
@@ -985,6 +995,11 @@ export default function App() {
   useEffect(() => {
     if (!isReady) return;
 
+    // Proactively request notification permission if not already granted or denied
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(err => console.error("Notification permission request failed:", err));
+    }
+
     if (isFirstRunAfterReady.current) {
       prevMessagesLength.current = messages.length;
       isFirstRunAfterReady.current = false;
@@ -998,7 +1013,9 @@ export default function App() {
       
       if (newAiMessages.length > 0) {
         const lastMsg = newAiMessages[newAiMessages.length - 1];
-        if (currentScreen !== 'chat' || isLocked || currentChatId !== lastMsg.personaId) {
+        const isCurrentChat = lastMsg.groupId ? currentChatId === lastMsg.groupId : currentChatId === lastMsg.personaId;
+        
+        if (currentScreen !== 'chat' || isLocked || !isCurrentChat) {
           setUnreadCount(prev => prev + newAiMessages.length);
           setNotification({ 
             title: personas.find(p => p.id === lastMsg.personaId)?.name || 'AI', 
@@ -1902,39 +1919,50 @@ export default function App() {
     const targetPersona = personas[0];
     if (!targetPersona) return;
 
+    console.log('> Test notification scheduled in 5s...');
+
     setTimeout(async () => {
       try {
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: "在吗？我想你了。",
-            history: [],
-            persona: targetPersona,
-            apiSettings,
-            worldbook,
-            userProfile,
-            subscriptionId
-          })
-        });
+        let responseText = "在吗？我想你了。";
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: "在吗？我想你了。",
+              history: [],
+              persona: targetPersona,
+              apiSettings,
+              worldbook,
+              userProfile,
+              subscriptionId
+            })
+          });
 
-        if (response.ok) {
-          const { responseText } = await response.json();
-          const aiMsg: Message = {
-            id: Date.now().toString(),
-            personaId: targetPersona.id,
-            role: 'model',
-            text: responseText,
-            msgType: 'text',
-            timestamp: new Date().toLocaleTimeString(),
-            createdAt: Date.now(),
-            isRead: false
-          };
-          setMessages(prev => [...prev, aiMsg]);
-          setUnreadCount(prev => prev + 1);
+          if (response.ok) {
+            const data = await response.json();
+            responseText = data.responseText;
+          }
+        } catch (e) {
+          console.warn("Test push API call failed, using fallback text:", e);
         }
+
+        const aiMsg: Message = {
+          id: Date.now().toString(),
+          personaId: targetPersona.id,
+          role: 'model',
+          text: responseText,
+          msgType: 'text',
+          timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+          createdAt: Date.now(),
+          isRead: false
+        };
+        setMessages(prev => [...prev, aiMsg]);
+        setUnreadCount(prev => prev + 1);
+        console.log(`> Test message received from ${targetPersona.name}`);
       } catch (e) {
         console.error("Test push failed:", e);
+        console.log(`> Error: Test push failed`);
       }
     }, 5000);
   }, [personas, apiSettings, worldbook, userProfile, subscriptionId]);
