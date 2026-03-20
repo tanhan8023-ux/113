@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Search, Star, Clock, MapPin, ShoppingCart, User, Home, List, Heart, Filter, ChevronRight, Plus, Minus, X, Phone, MessageSquare, ShoppingBag, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Persona, Order, UserProfile, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 
 interface Restaurant {
   id: string;
@@ -399,7 +400,7 @@ export function FoodDeliveryScreen({ onBack, personas, onOrder, onDeleteOrder, o
       balance: (prev.balance || 0) - total,
       transactions: [
         {
-          id: Date.now().toString(),
+          id: generateId(),
           type: 'payment',
           amount: total,
           description: `外卖订单-${selectedRestaurant?.name || '美食'}`,

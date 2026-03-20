@@ -89,7 +89,7 @@ export const ChatBubble = React.memo(function ChatBubble({
                 <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-[10px] leading-relaxed relative group ${msg.role === 'user' ? 'bg-indigo-500/80 text-white rounded-tr-sm' : 'bg-white/10 backdrop-blur-md text-white/90 rounded-tl-sm border border-white/5'}`}>
                   {(() => {
                     // Strip hidden tags
-                    const cleanText = msg.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim();
+                    const cleanText = (msg.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim();
                     const parts = cleanText.split(/(\[STICKER:\s*[^\]]+\])/g);
                     return parts.map((part, i) => {
                       const match = part.match(/\[STICKER:\s*([^\]]+)\]/);

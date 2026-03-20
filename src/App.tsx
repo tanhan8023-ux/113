@@ -12,6 +12,7 @@ import { MusicScreen } from './components/MusicScreen';
 import { XHSScreen } from './components/XHSScreen';
 import { TreeHoleScreen } from './components/TreeHoleScreen';
 import { TaobaoScreen } from './components/TaobaoScreen';
+import { generateId } from './utils/id';
 import { FoodDeliveryScreen } from './components/FoodDeliveryScreen';
 import { BartenderGame } from './components/BartenderGame';
 import { AiPhonesScreen } from './components/AiPhonesScreen';
@@ -79,7 +80,7 @@ export default function App() {
   // Wallet State
   const handleRecharge = (amount: number) => {
     const newTransaction: Transaction = {
-      id: Date.now().toString(),
+      id: generateId(),
       amount,
       type: 'top_up',
       description: '充值',
@@ -298,7 +299,7 @@ export default function App() {
 
   const handleCreatePlaylist = (name: string) => {
     const newPlaylist: Playlist = {
-      id: `pl-${Date.now()}`,
+      id: generateId(),
       name,
       songIds: [],
       createdAt: Date.now()
@@ -314,7 +315,7 @@ export default function App() {
     setPlaylists(prev => {
       const updated = prev.map(pl => {
         if (pl.id === playlistId) {
-          if (pl.songIds.includes(songId)) return pl;
+          if (pl.songIds && pl.songIds.includes(songId)) return pl;
           return { ...pl, songIds: [...pl.songIds, songId] };
         }
         return pl;
@@ -811,7 +812,7 @@ export default function App() {
       try {
         const newPostData = await generateXHSPost(apiSettings, worldbook, userProfile, aiRef);
         const newPost: XHSPost = {
-          id: `xhs-gen-${Date.now()}`,
+          id: generateId(),
           authorId: `passerby_gen_${Math.random().toString(36).substr(2, 9)}`,
           authorName: newPostData.authorName,
           authorAvatar: newPostData.authorAvatar,
@@ -838,7 +839,7 @@ export default function App() {
     try {
       const newPostData = await generateXHSPost(apiSettings, worldbook, userProfile, aiRef);
       const newPost: XHSPost = {
-        id: `xhs-gen-${Date.now()}`,
+        id: generateId(),
         authorId: `npc-gen-${Math.random().toString(36).substr(2, 9)}`,
         authorName: newPostData.authorName,
         authorAvatar: newPostData.authorAvatar,
@@ -1178,7 +1179,7 @@ export default function App() {
           try {
             const entryData = await generateDiaryEntry(persona, apiSettings, worldbook, userProfile, aiRef as any);
             const newEntry: DiaryEntry = {
-              id: Date.now().toString(),
+              id: generateId(),
               timestamp: Date.now(),
               title: entryData.title || '无题',
               content: entryData.content,
@@ -1199,7 +1200,7 @@ export default function App() {
             }));
             
           } catch (e: any) {
-            if (e?.message?.includes("Failed to fetch") || e?.message?.includes("NetworkError")) {
+            if (e?.message && (e.message.includes("Failed to fetch") || e.message.includes("NetworkError"))) {
               console.warn(`Failed to generate diary for ${persona.name} due to network error (Failed to fetch).`);
             } else {
               console.error(`Failed to generate diary for ${persona.name}:`, e);
@@ -1228,7 +1229,7 @@ export default function App() {
         const firstPersona = personas[0];
         if (firstPersona.allowActiveMessaging === true && !firstPersona.isBlockedByUser && !firstPersona.hasBlockedUser) {
           const msgText = `主人，你在干嘛呀？快来陪我聊天喵~`;
-          const newMsg: Message = { id: Date.now().toString(), personaId: firstPersona.id, role: 'model', text: msgText };
+          const newMsg: Message = { id: generateId(), personaId: firstPersona.id, role: 'model', text: msgText };
           setMessages(prev => [...prev, newMsg]);
         }
       }
@@ -1242,7 +1243,7 @@ export default function App() {
     const interval = setInterval(async () => {
       if (Date.now() - lastApiErrorTime < 15 * 60 * 1000) return;
       
-      const blockedPersonas = personas.filter(p => p.isBlockedByUser && !blockedAuthorIds.includes(p.id));
+      const blockedPersonas = personas.filter(p => p.isBlockedByUser && (!blockedAuthorIds || !blockedAuthorIds.includes(p.id)));
       if (blockedPersonas.length === 0) return;
 
       // 20% chance every 5 minutes to try coaxing
@@ -1339,7 +1340,7 @@ export default function App() {
     if (!treeHolePrivateChats[npcId]) {
       setTreeHolePrivateChats(prev => ({
         ...prev,
-        [npcId]: [{ id: 'msg-' + Date.now(), text: `你好，我是刚才在树洞发帖的${npcName}。`, isMe: false, time: Date.now() }]
+        [npcId]: [{ id: generateId(), text: `你好，我是刚才在树洞发帖的${npcName}。`, isMe: false, time: Date.now() }]
       }));
     }
   };
@@ -1352,7 +1353,7 @@ export default function App() {
       counter++;
     }
 
-    const wechatId = `wechat_${finalName}_${Date.now()}`;
+    const wechatId = generateId();
     
     // Find original tree hole persona to inherit settings
     const thPersona = treeHolePersonas.find(p => p.id === npcId);
@@ -1369,7 +1370,7 @@ export default function App() {
 
     setPersonas(prev => [...prev, newPersona]);
     setMessages(prev => [...prev, {
-      id: `msg_${Date.now()}`,
+      id: generateId(),
       personaId: wechatId,
       role: 'model',
       text: '我通过了你的朋友验证请求，现在我们可以开始聊天了',
@@ -1399,7 +1400,7 @@ export default function App() {
         const now = new Date();
         const timestamp = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
         const newMsg: Message = {
-          id: Date.now().toString(),
+          id: generateId(),
           personaId,
           role: 'user',
           text: '我邀请你一起听歌',
@@ -1419,7 +1420,7 @@ export default function App() {
 
   const handleShareMusicToChat = (song: Song, personaId: string) => {
     const newMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId,
       role: 'user',
       text: `分享了歌曲: ${song.title}`,
@@ -1432,7 +1433,7 @@ export default function App() {
     // Simulate AI response
     setTimeout(() => {
       const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId,
         role: 'model',
         text: `这首歌很好听呢！我也喜欢 ${song.artist} 的歌~ 🎵`,
@@ -1449,7 +1450,7 @@ export default function App() {
   };
   const handleShareMusicToMoments = (song: Song) => {
     const newMoment: Moment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: `分享了一首好听的歌 🎵`,
       timestamp: '刚刚',
@@ -1464,7 +1465,7 @@ export default function App() {
 
   const handleShareXHSPostToChat = (post: XHSPost, personaId: string) => {
     const newMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId,
       role: 'user',
       text: `分享了小红书帖子: ${post.title}`,
@@ -1479,7 +1480,7 @@ export default function App() {
     // Simulate AI response
     setTimeout(() => {
       const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId,
         role: 'model',
         text: `哇，这个帖子很有意思呢！我也想去看看~ ✨`,
@@ -1492,7 +1493,7 @@ export default function App() {
 
   const handleShareXHSPostToMoments = (post: XHSPost) => {
     const newMoment: Moment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: `分享了一个小红书帖子: ${post.title} ✨`,
       timestamp: '刚刚',
@@ -1538,7 +1539,7 @@ export default function App() {
 
   const handleCreateGroup = (name: string, memberIds: string[]) => {
     const newGroup: GroupChat = {
-      id: Date.now().toString(),
+      id: generateId(),
       name,
       memberIds: ['user', ...memberIds], // Always include user
       ownerId: 'user',
@@ -1642,7 +1643,7 @@ export default function App() {
         // If it's a transfer, show the "Received" bubble first
         if (msgType === 'transfer') {
           const receiptMsg: Message = {
-            id: (Date.now() + 100).toString(),
+            id: generateId(),
             personaId: personaId,
             role: 'model',
             text: '', 
@@ -1748,7 +1749,7 @@ export default function App() {
           setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, imageDescription } : m));
         }
 
-        if (responseText.includes('[NO_REPLY]')) return;
+        if (responseText && responseText.includes('[NO_REPLY]')) return;
         
         const processed = processAiResponseParts(responseText, userProfile, undefined, targetPersona.isSegmentResponse || worldbook.forceSegmentResponse);
         
@@ -1763,7 +1764,7 @@ export default function App() {
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
           const aiMsg: Message = { 
-            id: (Date.now() + Math.random()).toString(), 
+            id: generateId(), 
             personaId: personaId,
             role: 'model',
             text: part.text || '',
@@ -1806,7 +1807,7 @@ export default function App() {
       } catch (error: any) {
         console.error("AI Response Error:", error);
         const errorMsg: Message = {
-          id: Date.now().toString(),
+          id: generateId(),
           personaId,
           role: 'model',
           text: '(网络错误，请重试)',
@@ -1840,7 +1841,7 @@ export default function App() {
     // Check if user has blocked AI
     if (targetPersona?.isBlockedByUser) {
       const blockedMsg: Message = {
-        id: Date.now().toString(),
+        id: generateId(),
         personaId: personaId,
         role: 'user',
         text,
@@ -1852,7 +1853,7 @@ export default function App() {
       };
       
       const systemErrorMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId: personaId,
         role: 'system',
         text: '你已将对方加入黑名单，无法发送消息。',
@@ -1868,7 +1869,7 @@ export default function App() {
     // Check if AI has blocked user
     if (targetPersona?.hasBlockedUser) {
       const blockedMsg: Message = {
-        id: Date.now().toString(),
+        id: generateId(),
         personaId: personaId,
         role: 'user',
         text,
@@ -1880,7 +1881,7 @@ export default function App() {
       };
       
       const systemErrorMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId: personaId,
         role: 'system',
         text: '消息已发出，但被对方拒收了。',
@@ -1894,7 +1895,7 @@ export default function App() {
     }
 
     const newMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: personaId,
       role: 'user',
       text,
@@ -1948,7 +1949,7 @@ export default function App() {
         }
 
         const aiMsg: Message = {
-          id: Date.now().toString(),
+          id: generateId(),
           personaId: targetPersona.id,
           role: 'model',
           text: responseText,
@@ -2087,7 +2088,7 @@ export default function App() {
       const responseText = aiResponse.responseText;
 
       const aiMsg: Message = {
-        id: Date.now().toString(),
+        id: generateId(),
         personaId: targetPersona.id,
         role: 'model',
         text: responseText,
@@ -2158,13 +2159,13 @@ export default function App() {
       
       const responseText = aiResponse.responseText;
       
-      if (responseText.includes('[NO_REPLY]')) {
+      if (responseText && responseText.includes('[NO_REPLY]')) {
         console.log(`AI (${persona.name}) decided to stay silent.`);
         return;
       }
 
       const aiMsg: Message = {
-        id: Date.now().toString(),
+        id: generateId(),
         personaId: persona.id,
         role: 'model',
         text: responseText,
@@ -2179,7 +2180,7 @@ export default function App() {
       if (userProfile.autoReplyEnabled && userProfile.autoReplyContent) {
         setTimeout(() => {
           const userAutoReply: Message = {
-            id: (Date.now() + 100).toString(),
+            id: generateId(),
             personaId: persona.id,
             role: 'user',
             text: `[自动回复] ${userProfile.autoReplyContent}`,
@@ -2268,7 +2269,7 @@ export default function App() {
   const handleOrder = async (items: string[], forWho: string) => {
     // Create order record
     const newOrder: Order = {
-      id: Date.now().toString(),
+      id: generateId(),
       restaurantName: '外卖订单', // Simplified for now
       restaurantImage: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=200&q=80',
       items: items,
@@ -2290,7 +2291,7 @@ export default function App() {
 
     const orderText = `我给你点了外卖：${items.join('、')}`;
     const newMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: targetPersona.id,
       role: 'user',
       text: orderText,
@@ -2325,7 +2326,7 @@ export default function App() {
        );
        
        const aiMsg: Message = {
-         id: (Date.now() + 1).toString(),
+         id: generateId(),
          personaId: targetPersona.id,
          role: 'model',
          text: aiResponse.responseText,
@@ -2353,7 +2354,7 @@ export default function App() {
   const handleAiOrder = (items: string[], personaId: string) => {
     const persona = personas.find(p => p.id === personaId);
     const newOrder: Order = {
-      id: Date.now().toString(),
+      id: generateId(),
       restaurantName: persona ? `${persona.name}的点单` : 'AI点单',
       restaurantImage: persona?.avatarUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=200&q=80',
       items: items,
@@ -2437,7 +2438,7 @@ export default function App() {
             className="absolute top-0 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[448px] bg-white/80 backdrop-blur-xl rounded-2xl p-3 shadow-lg z-[100] flex items-center gap-3 cursor-pointer border border-white/50"
             onClick={() => {
               if (notification.personaId) {
-                if (notification.title.includes('小红书')) {
+                if (notification.title && notification.title.includes('小红书')) {
                   setXhsInitialActiveChatAuthorId(notification.personaId);
                   setCurrentScreen('xhs');
                 } else {
@@ -2761,7 +2762,7 @@ export default function App() {
                       
                       if (product) {
                         const newMsg: Message = {
-                          id: Date.now().toString(),
+                          id: generateId(),
                           personaId,
                           role: 'user',
                           text: `我分享了商品: ${product.name}`,
@@ -2777,7 +2778,7 @@ export default function App() {
                         
                         setTimeout(() => {
                           const aiMsg: Message = {
-                            id: (Date.now() + 1).toString(),
+                            id: generateId(),
                             personaId,
                             role: 'model',
                             text: `这个商品看起来不错呀！我也想买一个~ 🛒`,
@@ -2984,7 +2985,7 @@ export default function App() {
               type={activeCall.type}
               onEndCall={(duration, wasMissed) => {
                 setCallHistory(prev => [{
-                  id: Date.now().toString(),
+                  id: generateId(),
                   personaId: activeCall.personaId,
                   type: activeCall.type === 'incoming' ? (wasMissed ? 'missed' : 'incoming') : 'outgoing',
                   startTime: Date.now() - duration * 1000,

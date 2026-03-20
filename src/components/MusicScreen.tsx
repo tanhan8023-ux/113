@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Song, Persona, Playlist, Message, ApiSettings, WorldbookSettings, UserProfile, ThemeSettings } from '../types';
 import { fetchAiResponse, generateLyrics, transcribeAudio } from '../services/aiService';
+import { generateId } from '../utils/id';
 import { GoogleGenAI } from '@google/genai';
 import * as mm from 'music-metadata-browser';
 
@@ -208,7 +209,7 @@ export function MusicScreen({
             
             // Send message explaining why
             const newMsg: Message = {
-              id: Date.now().toString(),
+              id: generateId(),
               personaId: listeningWith.id,
               role: 'model',
               text: `(切歌) ${result.reason}`,
@@ -220,7 +221,7 @@ export function MusicScreen({
           } else if (result && result.reason && Math.random() > 0.7) {
             // 30% chance to just comment if not skipping
              const newMsg: Message = {
-              id: Date.now().toString(),
+              id: generateId(),
               personaId: listeningWith.id,
               role: 'model',
               text: result.reason,
@@ -278,7 +279,7 @@ export function MusicScreen({
           );
 
           const newMsg: Message = {
-            id: Date.now().toString(),
+            id: generateId(),
             personaId: listeningWith.id,
             role: 'model',
             text: responseText,
@@ -310,7 +311,7 @@ export function MusicScreen({
           return;
         }
         
-        if (lastMsg && lastMsg.role === 'model' && lastMsg.text.includes(currentSong.title) && (Date.now() - (lastMsg.createdAt || 0) < 60000)) {
+        if (lastMsg && lastMsg.role === 'model' && lastMsg.text && lastMsg.text.includes(currentSong.title) && (Date.now() - (lastMsg.createdAt || 0) < 60000)) {
           return;
         }
 
@@ -339,7 +340,7 @@ export function MusicScreen({
           );
 
           const newMsg: Message = {
-            id: Date.now().toString(),
+            id: generateId(),
             personaId: listeningWith.id,
             role: 'model',
             text: responseText,
@@ -524,7 +525,7 @@ export function MusicScreen({
       }
 
       const newSong: Song = {
-        id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `local-${generateId()}`,
         title,
         artist,
         cover: 'https://picsum.photos/seed/music/400/400', // Default cover
@@ -574,7 +575,7 @@ export function MusicScreen({
     if (!listeningWith || !setMessages || !apiSettings || !worldbook || !aiRef || !userProfile) return;
     
     const newMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: listeningWith.id,
       role: 'user',
       text,
@@ -621,7 +622,7 @@ export function MusicScreen({
       setMessages(prev => prev.map(m => m.id === newMsg.id ? { ...m, isRead: true, status: 'read' } : m));
 
       const aiMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId: listeningWith.id,
         role: 'model',
         text: responseText,
@@ -634,7 +635,7 @@ export function MusicScreen({
     } catch (error) {
       console.error("Failed to generate reply:", error);
       const errorMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: generateId(),
         personaId: listeningWith.id,
         role: 'model',
         text: "(网络错误，请重试)",

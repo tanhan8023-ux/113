@@ -10,12 +10,12 @@ export const cleanContextMessage = (text: string) => {
 };
 
 export const processAiResponseParts = (responseText: string | { responseText: string }, userProfile: UserProfile, aiQuotedId?: string, isSegmentResponse?: boolean) => {
-  let text = typeof responseText === 'string' ? responseText : responseText.responseText;
+  let text = typeof responseText === 'string' ? responseText : (responseText?.responseText || '');
   
   // Extract and remove ||NEXT:xxx|| tags
   let nextTag: string | undefined;
   const nextTagRegex = /\|\|NEXT:(IMMEDIATE|SHORT|LONG|STOP)\|\|/i;
-  const nextTagMatch = text.match(nextTagRegex);
+  const nextTagMatch = (text || '').match(nextTagRegex);
   if (nextTagMatch) {
     nextTag = nextTagMatch[0];
     text = text.replace(nextTagRegex, '').trim();

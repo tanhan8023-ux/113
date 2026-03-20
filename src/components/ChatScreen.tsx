@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, Loader2, Plus, ArrowLeftRight, MessageCircle, Compass, Navigation, Bookmark, Image as ImageIcon, MoreHorizontal, MessageSquare, Heart, Camera, UserPlus, Trash2, Ban, Users, Play, RefreshCw, Wallet, X, CreditCard, Smile, Music, Film, Moon, Shield, RotateCcw, Settings, Sliders, Phone, Mic, MicOff, Video, VideoOff, User, Smartphone, Scan, PiggyBank, Car, HeartPulse, Check } from 'lucide-react';
 import { Message, Persona, UserProfile, ApiSettings, ThemeSettings, Moment, Comment, WorldbookSettings, Transaction, Screen, GroupChat } from '../types';
+import { generateId } from '../utils/id';
 import { GoogleGenAI } from '@google/genai';
 import { AnimatePresence, motion } from 'motion/react';
 import { fetchAiResponse as originalFetchAiResponse, generateMoment, checkIfPersonaIsOffline, summarizeChat, extractAndSaveMemory } from '../services/aiService';
@@ -110,7 +111,7 @@ const DanmakuLayer = ({ messages }: { messages: Message[] }) => {
     lastProcessedId.current = lastMsg.id;
 
     // Only show Danmaku for new messages (strip descriptions and quotes)
-    const text = lastMsg.text.replace(/[\(\*].*?[\)\*]/g, '').replace(/["\u201c\u201d]/g, '').trim();
+    const text = (lastMsg.text || '').replace(/[\(\*].*?[\)\*]/g, '').replace(/["\u201c\u201d]/g, '').trim();
     if (!text) return;
 
     const newDanmaku = {
@@ -400,13 +401,13 @@ export function ChatScreen({
         try {
           const response = await fetchAiResponse(prompt, contextMessages, persona, apiSettings, worldbook, userProfile, aiRef, true, "", apiSettings.apiUrl ? undefined : "gemini-3-flash-preview");
           
-          if (!response.responseText.includes('[NO_REPLY]')) {
+          if (response.responseText && !response.responseText.includes('[NO_REPLY]')) {
             const isSegment = persona.isSegmentResponse || worldbook.forceSegmentResponse;
             const texts = isSegment ? response.responseText.split(/[\n\r]+|\\n/).filter(t => t.trim()) : [response.responseText];
 
             (async () => {
               for (let i = 0; i < texts.length; i++) {
-                const text = texts[i].replace('[NO_REPLY]', '').trim();
+                const text = (texts[i] || '').replace('[NO_REPLY]', '').trim();
                 if (!text) continue;
                 
                 setIsTyping(true);
@@ -414,7 +415,7 @@ export function ChatScreen({
                 setIsTyping(false);
 
                 const aiMsg: Message = {
-                  id: (Date.now() + Math.random() + i).toString(),
+                  id: generateId(),
                   personaId: persona.id,
                   groupId: currentGroupId,
                   role: 'model',
@@ -496,14 +497,14 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         try {
           const response = await fetchAiResponse(prompt, contextMessages, persona, apiSettings, worldbook, userProfile, aiRef, true, "", apiSettings.apiUrl ? undefined : "gemini-3-flash-preview");
           
-          if (!response.responseText.includes('[NO_REPLY]')) {
+          if (response.responseText && !response.responseText.includes('[NO_REPLY]')) {
             const isSegment = persona.isSegmentResponse || worldbook.forceSegmentResponse;
             const texts = isSegment ? response.responseText.split(/[\n\r]+|\\n/).filter(t => t.trim()) : [response.responseText];
 
             // Send segments one by one with real delay to allow interleaving
             (async () => {
               for (let i = 0; i < texts.length; i++) {
-                const text = texts[i].replace('[NO_REPLY]', '').trim();
+                const text = (texts[i] || '').replace('[NO_REPLY]', '').trim();
                 if (!text) continue;
                 
                 // Simulate typing
@@ -512,7 +513,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                 setIsTyping(false);
 
                 const aiMsg: Message = {
-                  id: (Date.now() + Math.random() + i).toString(),
+                  id: generateId(),
                   personaId: persona.id,
                   groupId: currentGroupId,
                   role: 'model',
@@ -651,8 +652,8 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
             break;
           }
 
-          const isUnread = response.responseText.includes('[UNREAD]') && !isMentioned;
-          const isNoReply = response.responseText.includes('[NO_REPLY]') && !isMentioned;
+          const isUnread = (response.responseText || '').includes('[UNREAD]') && !isMentioned;
+          const isNoReply = (response.responseText || '').includes('[NO_REPLY]') && !isMentioned;
 
           if (!isUnread) {
             // Mark message as read by this persona if they didn't explicitly choose [UNREAD]
@@ -672,7 +673,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
 
           if (!isNoReply || isMentioned) {
             // This persona decided to reply!
-            let responseText = response.responseText.replace('[NO_REPLY]', '').replace('[UNREAD]', '').trim();
+            let responseText = (response.responseText || '').replace('[NO_REPLY]', '').replace('[UNREAD]', '').trim();
             if (!responseText && isMentioned) {
               responseText = "嗯？叫我干嘛？"; // Fallback if it still outputs NO_REPLY when mentioned
             }
@@ -693,7 +694,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                   setIsTyping(false);
 
                   const aiMsg: Message = {
-                    id: (Date.now() + Math.random() + i).toString(),
+                    id: generateId(),
                     personaId: persona.id,
                     groupId: currentGroupId,
                     role: 'model',
@@ -810,7 +811,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         await new Promise(resolve => setTimeout(resolve, typingDelay));
         
         const newMessage: Message = {
-          id: (Date.now() + Math.random()).toString(),
+          id: generateId(),
           personaId: persona.id,
           role: 'model',
           text: partText,
@@ -985,7 +986,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         const { content, imageUrl } = await generateMoment(randomPersona, apiSettings, worldbook);
         if (content || imageUrl) {
           const newMoment: Moment = {
-            id: Date.now().toString(),
+            id: generateId(),
             authorId: randomPersona.id,
             text: content,
             imageUrl: imageUrl,
@@ -1048,7 +1049,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     
     // Add system message
     const systemMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: currentChatId!,
       role: 'model', // Or 'system' if supported, but model is fine for display usually
       text: `[${callType}结束，时长 ${durationText}]`,
@@ -1247,7 +1248,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
               await new Promise(resolve => setTimeout(resolve, typingDelay));
               
               const aiMsg: Message = { 
-                id: (Date.now() + Math.random()).toString(), 
+                id: generateId(), 
                 personaId: currentChatId,
                 role: 'model', 
                 text: part.text || '',
@@ -1297,7 +1298,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     if (!newStickerName.trim() || !newStickerUrl.trim()) return;
     
     const newSticker = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: newStickerName.trim(),
       url: newStickerUrl.trim()
     };
@@ -1321,7 +1322,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         const newSticker = {
-          id: Date.now().toString() + Math.random(),
+          id: generateId(),
           name: file.name.split('.')[0],
           url: base64
         };
@@ -1335,15 +1336,15 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
   };
 
   const processAiResponseParts = (responseText: string | { responseText: string }, aiQuotedId?: string, isSegmentResponse?: boolean) => {
-    let text = typeof responseText === 'string' ? responseText : responseText.responseText;
+    let text = typeof responseText === 'string' ? responseText : (responseText?.responseText || '');
     
     // Extract and remove ||NEXT:xxx|| tags
     let nextTag: string | undefined;
     const nextTagRegex = /\|\|NEXT:(IMMEDIATE|SHORT|LONG|STOP)\|\|/i;
-    const nextTagMatch = text.match(nextTagRegex);
+    const nextTagMatch = (text || '').match(nextTagRegex);
     if (nextTagMatch) {
       nextTag = nextTagMatch[0];
-      text = text.replace(nextTagRegex, '').trim();
+      text = (text || '').replace(nextTagRegex, '').trim();
     }
 
     // Regexes for special tags
@@ -1580,7 +1581,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     const now = new Date();
     const timestamp = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
     const userMsg: Message = { 
-      id: Date.now().toString(), 
+      id: generateId(), 
       personaId: currentChatId || '',
       groupId: currentGroupId || undefined,
       role: 'user', 
@@ -1611,7 +1612,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     // Record transaction for user transfer
     if (msgType === 'transfer' && amount && currentPersona) {
       const newTx: Transaction = {
-        id: Date.now().toString() + '-user',
+        id: generateId(),
         type: 'payment',
         amount: amount,
         description: `转账给 ${currentPersona.name}`,
@@ -1672,7 +1673,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         // If it's a transfer, show the "Received" bubble first
         if (msgType === 'transfer') {
           const receiptMsg: Message = {
-            id: (Date.now() + 100).toString(),
+            id: generateId(),
             personaId: personaForResponse.id,
             role: 'model',
             text: '', 
@@ -1840,7 +1841,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
           const aiMsg: Message = { 
-            id: (Date.now() + Math.random()).toString(), 
+            id: generateId(),
             personaId: currentPersona.id,
             role: 'model', 
             text: part.text || '',
@@ -1871,7 +1872,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           // Record transaction for AI transfer (only if it's a refund, otherwise it's pending)
           if (part.msgType === 'transfer' && part.amount && part.isRefund) {
             const newTx: Transaction = {
-              id: Date.now().toString() + '-ai',
+              id: generateId(),
               type: 'red_packet',
               amount: part.amount,
               description: `${currentPersona.name} 的退款`,
@@ -1915,7 +1916,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                     await new Promise(resolve => setTimeout(resolve, typingDelay));
                     
                     const newAiMsg: Message = { 
-                      id: (Date.now() + Math.random()).toString(), 
+                      id: generateId(), 
                       personaId: currentPersona.id,
                       role: 'model', 
                       text: partText,
@@ -1954,7 +1955,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         if (error?.message?.includes('频率限制') || error?.message?.includes('429')) {
           console.warn("Chat rate limited.");
           setMessages(prev => [...prev, { 
-            id: Date.now().toString(), 
+            id: generateId(), 
             personaId: currentPersona.id, 
             role: 'model', 
             text: "(太快啦，让我歇会儿~ 频率限制中)", 
@@ -1973,7 +1974,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
             errorMsg = "API Key 无效，请在设置中检查您的 API Key 是否正确。";
           }
           setMessages(prev => [...prev, { 
-            id: Date.now().toString(), 
+            id: generateId(), 
             personaId: currentPersona.id, 
             role: 'model', 
             text: errorMsg, 
@@ -2053,7 +2054,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         for (let i = 0; i < finalParts.length; i++) {
           const part = finalParts[i];
           const aiMsg: Message = { 
-            id: (Date.now() + i + 1).toString(), 
+            id: generateId(), 
             personaId: currentPersona.id,
             role: 'model', 
             text: part.text || '',
@@ -2126,7 +2127,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     }
 
     const sysMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: currentPersona.id,
       role: 'user', // We use user role for alignment, but msgType system will center it
       text: patText,
@@ -2177,7 +2178,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
           const aiMsg: Message = { 
-            id: (Date.now() + Math.random()).toString(), 
+            id: generateId(), 
             personaId: currentPersona.id,
             role: 'model', 
             text: partText,
@@ -2265,7 +2266,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       const moodMatch = innerVoiceText.match(/\[MOOD:\s*([^\]]+)\]/);
       if (moodMatch) {
         mood = moodMatch[1].trim();
-        innerVoiceText = innerVoiceText.replace(/\[MOOD:\s*[^\]]+\]/, '').trim();
+        innerVoiceText = (innerVoiceText || '').replace(/\[MOOD:\s*[^\]]+\]/, '').trim();
       }
 
       setMessages(prev => prev.map(m => 
@@ -2365,7 +2366,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         await new Promise(resolve => setTimeout(resolve, typingDelay));
         
         const aiMsg: Message = { 
-          id: (Date.now() + Math.random()).toString(), 
+          id: generateId(), 
           personaId: currentPersona.id,
           role: 'model', 
           text: part.text || '',
@@ -2411,7 +2412,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       } else if (errorStr.includes('API key not valid') || errorStr.includes('API_KEY_INVALID') || errorStr.includes('400')) {
         errorMsg = "API Key 无效，请在设置中检查您的 API Key 是否正确。";
       }
-      setMessages(prev => [...prev, { id: Date.now().toString(), personaId: currentPersona.id, role: 'model', text: errorMsg, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), isRead: true }]);
+      setMessages(prev => [...prev, { id: generateId(), personaId: currentPersona.id, role: 'model', text: errorMsg, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), isRead: true }]);
     } finally {
       pendingRequests.current = Math.max(0, pendingRequests.current - 1);
       setIsLoading(false);
@@ -2474,7 +2475,7 @@ ${recentMessages}
       }
 
       const newTransaction: Transaction = {
-        id: Date.now().toString(),
+        id: generateId(),
         type: 'transfer',
         amount: amount,
         description: `转账给${currentPersona?.name || '朋友'}${transferNote ? ` (${transferNote})` : ''}`,
@@ -2583,7 +2584,7 @@ ${recentMessages}
   const handleAddFriend = () => {
     if (!newFriendName.trim()) return;
     const newPersona: Persona = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: newFriendName.trim(),
       instructions: newFriendPrompt.trim() || '你是一个新朋友。',
     };
@@ -2636,7 +2637,7 @@ ${recentMessages}
     if (!targetMoment) return;
 
     const newComment: Comment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: commentInput.trim(),
       timestamp: '刚刚',
@@ -2668,7 +2669,7 @@ ${recentMessages}
         const responseText = aiResponse.responseText;
         
         const aiReply: Comment = {
-          id: (Date.now() + 1).toString(),
+          id: generateId(),
           authorId: authorPersona.id,
           text: responseText,
           timestamp: '刚刚',
@@ -2700,7 +2701,7 @@ ${recentMessages}
     if (!newMomentText.trim() || isAiProcessingMoment) return;
 
     const newMoment: Moment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: newMomentText.trim(),
       timestamp: '刚刚',
@@ -2733,7 +2734,7 @@ ${recentMessages}
           ));
         } else if (!aiAction.includes('IGNORE') && aiAction.length > 0) {
           const aiComment: Comment = {
-            id: Date.now().toString() + Math.random(),
+            id: generateId(),
             authorId: persona.id,
             text: aiAction,
             timestamp: '刚刚',
@@ -3109,7 +3110,7 @@ ${recentMessages}
                           </div>
                           <div className="break-words">
                             {(() => {
-                              const cleanText = msg.text
+                              const cleanText = (msg.text || '')
                                 .replace(/\|\|NEXT:[^|]+\|\|/g, '')
                                 .replace(/\[系统提示：[^\]]+\]/g, '')
                                 .replace(/【视觉感知报告[^】]+】/g, '')
@@ -3269,7 +3270,7 @@ ${recentMessages}
                             return (
                               <>
                                 <div className="font-bold mb-0.5">{quoted.role === 'user' ? userProfile.name : currentPersona?.name}</div>
-                                <div className="truncate">{quoted.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}</div>
+                                <div className="truncate">{(quoted.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}</div>
                               </>
                             );
                           })()}
@@ -3457,7 +3458,7 @@ ${recentMessages}
                               }}
                             >
                               {(() => {
-                                const cleanText = msg.text
+                                const cleanText = (msg.text || '')
                                   .replace(/\|\|NEXT:[^|]+\|\|/g, '')
                                   .replace(/\[系统提示：[^\]]+\]/g, '')
                                   .replace(/【视觉感知报告[^】]+】/g, '')
@@ -3734,7 +3735,7 @@ ${recentMessages}
                 <div className="px-4 py-2 bg-neutral-200/50 flex items-center justify-between gap-2 border-b border-neutral-200">
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] text-neutral-500 font-medium">引用 {quotedMessage.role === 'user' ? '自己' : currentPersona?.name} 的话：</div>
-                    <div className="text-xs text-neutral-600 truncate">{quotedMessage.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}</div>
+                    <div className="text-xs text-neutral-600 truncate">{(quotedMessage.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}</div>
                   </div>
                   <button onClick={() => setQuotedMessage(null)} className="text-neutral-400 p-1">
                     <X size={14} />
@@ -5899,7 +5900,7 @@ ${recentMessages}
                         onClick={() => {
                           // Accept transfer
                           const newTx: Transaction = {
-                            id: Date.now().toString() + '-ai-accept',
+                            id: generateId(),
                             type: 'red_packet',
                             amount: selectedTransferMsg.amount!,
                             description: `${currentPersona?.name || '对方'} 的转账`,
@@ -5914,7 +5915,7 @@ ${recentMessages}
                           
                           // Send a system message or user message to acknowledge
                           const acceptMsg: Message = {
-                            id: Date.now().toString(),
+                            id: generateId(),
                             personaId: currentPersona?.id || '',
                             role: 'user',
                             text: "",
@@ -5940,7 +5941,7 @@ ${recentMessages}
                           setMessages(prev => prev.map(m => m.id === selectedTransferMsg.id ? { ...m, transferStatus: 'rejected' } : m));
                           
                           const rejectMsg: Message = {
-                            id: Date.now().toString(),
+                            id: generateId(),
                             personaId: currentPersona?.id || '',
                             role: 'user',
                             text: "",
@@ -5980,7 +5981,7 @@ ${recentMessages}
                           
                           // Deduct balance
                           const newTx: Transaction = {
-                            id: Date.now().toString() + '-pay-request',
+                            id: generateId(),
                             type: 'red_packet',
                             amount: -(selectedTransferMsg.amount!),
                             description: `支付 ${currentPersona?.name || '对方'} 的收款请求`,
@@ -6153,7 +6154,7 @@ ${recentMessages}
           worldbook={worldbook}
           onSendMessageAsAi={(text) => {
             const aiMsg: Message = {
-              id: Date.now().toString(),
+              id: generateId(),
               personaId: currentPersona.id,
               role: 'model',
               text,
@@ -6251,7 +6252,7 @@ ${recentMessages}
             transactions={userProfile.transactions || []}
             onRecharge={(amount) => {
               const newTransaction: Transaction = {
-                id: Date.now().toString(),
+                id: generateId(),
                 amount,
                 type: 'top_up',
                 description: '充值',

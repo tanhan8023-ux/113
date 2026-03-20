@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Search, ShoppingCart, MessageCircle, Star, ChevronRight, CheckCircle2, Share } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { UserProfile, Transaction, Persona, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 
 interface Props {
   userProfile: UserProfile;
@@ -57,7 +58,7 @@ export function TaobaoScreen({ userProfile, setUserProfile, onBack, personas, on
     const balance = userProfile.balance || 0;
     if (balance >= product.price) {
       const newTransaction: Transaction = {
-        id: Date.now().toString(),
+        id: generateId(),
         type: 'payment',
         amount: product.price,
         description: `淘宝购物: ${product.name.substring(0, 10)}...`,

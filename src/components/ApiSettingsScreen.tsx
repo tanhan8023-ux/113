@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Settings, Plus, Trash2, Image as ImageIcon, Download, Upload } from 'lucide-react';
 import { ApiSettings, Persona, UserProfile, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 
 interface Props {
   settings: ApiSettings;
@@ -114,7 +115,7 @@ export function ApiSettingsScreen({ settings, personas: initialPersonas, userPro
 
   const handleAddPersona = () => {
     const newPersona: Persona = {
-      id: `p${Date.now()}`,
+      id: generateId(),
       name: `新角色 ${personas.length + 1}`,
       instructions: '你是一个新的 AI 助手。',
       prompts: []

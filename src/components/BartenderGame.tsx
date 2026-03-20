@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { fetchAiResponse } from '../services/aiService';
 import { GoogleGenAI } from '@google/genai';
 import { ApiSettings, Persona, Message, UserProfile, WorldbookSettings, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 
 interface Props {
   onBack: () => void;
@@ -182,7 +183,7 @@ export function BartenderGame({ onBack, apiSettings, personas, messages, setMess
     if (!selectedPersonaId) return;
     
     const newMsg: Message = {
-      id: Date.now().toString() + Math.random().toString(),
+      id: generateId(),
       personaId: selectedPersonaId,
       role: role,
       text: `[调酒真心话] ${text}`,
@@ -203,7 +204,7 @@ export function BartenderGame({ onBack, apiSettings, personas, messages, setMess
     const contextMessages: Message[] = history
         .filter(h => h.role !== 'system')
         .map(h => ({
-            id: Math.random().toString(),
+            id: generateId(),
             personaId: selectedPersona.id,
             role: h.role === 'bartender' ? 'model' : 'user',
             text: h.text,
@@ -242,11 +243,11 @@ export function BartenderGame({ onBack, apiSettings, personas, messages, setMess
       let text = response.responseText;
       
       // Strip sticker tags if present (e.g., [STICKER: ...])
-      text = text.replace(/\[STICKER:.*?\]/g, '').trim();
+      text = (text || '').replace(/\[STICKER:.*?\]/g, '').trim();
       
       // Clean up markdown code blocks if present
       if (expectJson) {
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        text = (text || '').replace(/```json/g, '').replace(/```/g, '').trim();
         try {
             return JSON.parse(text);
         } catch (e) {

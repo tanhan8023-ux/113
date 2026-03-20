@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Volume2, ListMusic, Repeat, Shuffle, Upload } from 'lucide-react';
 import { Song } from '../types';
+import { generateId } from '../utils/id';
 
 export const MusicPlayer: React.FC<{ 
   songs: Song[];
@@ -19,7 +20,7 @@ export const MusicPlayer: React.FC<{
     if (!file) return;
 
     const newSong: Song = {
-      id: Date.now().toString(),
+      id: generateId(),
       title: file.name.split('.')[0],
       artist: '未知艺术家',
       url: '', // URL will be generated in App.tsx

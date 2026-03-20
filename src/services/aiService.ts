@@ -96,12 +96,13 @@ async function callAi(params: {
     const contents = params.messages.map(m => ({
       role: m.role === 'model' || m.role === 'assistant' ? 'model' : 'user',
       parts: Array.isArray(m.content) ? m.content.map(c => {
-        if (typeof c === 'object' && c.type === 'image_url') {
+        if (typeof c === 'object' && c.type === 'image_url' && c.image_url?.url) {
           const mimeMatch = c.image_url.url.match(/data:(image\/[^;]+);base64,/);
-          return { inlineData: { mimeType: mimeMatch?.[1] || 'image/png', data: c.image_url.url.split(',')[1] } };
+          const base64Data = c.image_url.url.includes(',') ? c.image_url.url.split(',')[1] : c.image_url.url;
+          return { inlineData: { mimeType: mimeMatch?.[1] || 'image/png', data: base64Data || '' } };
         }
         return { text: typeof c === 'string' ? c : JSON.stringify(c) };
-      }) : [{ text: m.content }]
+      }) : [{ text: m.content || '' }]
     }));
     const response = await ai.models.generateContent({
       model: params.model,
@@ -373,8 +374,8 @@ export async function fetchAiResponse(
       aiRef
     });
 
-    if (!isSystemTask) await extractAndSaveMemory(promptText, text, aiRef, effectiveApiSettings);
-    return { responseText: processAiResponse(text), imageDescription };
+    if (!isSystemTask && text) await extractAndSaveMemory(promptText, text, aiRef, effectiveApiSettings);
+    return { responseText: processAiResponse(text || ''), imageDescription };
   } catch (error: any) {
     console.error("AI Response Error:", error);
     throw error;
@@ -382,5 +383,6 @@ export async function fetchAiResponse(
 }
 
 export function processAiResponse(responseText: string) {
+  if (!responseText) return '';
   return responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').replace(/\|\|\|/g, '').trim();
 }

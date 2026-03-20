@@ -3,6 +3,7 @@ import { MessageCircle, Book, Music, Hash, HeartPulse, Sprout, Truck, MoreHorizo
 import { Responsive, WidthProvider } from 'react-grid-layout/legacy';
 import { motion, AnimatePresence } from 'motion/react';
 import { ThemeSettings, UserProfile, Song, Screen } from '../types';
+import { generateId } from '../utils/id';
 
 const ResponsiveGridLayoutComponent = WidthProvider(Responsive);
 
@@ -251,7 +252,7 @@ export function HomeScreen({ onNavigate, onLock, theme, setTheme, unreadCount, u
 
   const addWidget = (widgetTemplate: any) => {
     const newWidget = {
-      id: `${widgetTemplate.type}-${Date.now()}`,
+      id: generateId(),
       type: widgetTemplate.type,
       x: 0,
       y: 99, // puts it at the bottom

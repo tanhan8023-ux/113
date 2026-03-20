@@ -88,7 +88,7 @@ export const ChatListView = ({
               </div>
               <p className="text-[13px] text-neutral-500 truncate mt-0.5">
                 {lastMsg ? (
-                  `${personas.find(p => p.id === lastMsg.personaId)?.name || '我'}: ${lastMsg.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}`
+                  `${personas.find(p => p.id === lastMsg.personaId)?.name || '我'}: ${(lastMsg.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()}`
                 ) : '暂无消息'}
               </p>
             </div>
@@ -148,7 +148,7 @@ export const ChatListView = ({
                   lastMsg.msgType === 'music' ? '[音乐分享]' :
                   lastMsg.msgType === 'xhsPost' ? '[小红书分享]' :
                   lastMsg.msgType === 'listenTogether' ? '[一起听歌]' :
-                  lastMsg.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()
+                  (lastMsg.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim()
                 ) : '暂无消息'}
               </p>
             </div>

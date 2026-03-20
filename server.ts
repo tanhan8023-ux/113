@@ -22,6 +22,10 @@ db.exec(`
   )
 `);
 
+function generateId() {
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -106,9 +110,9 @@ async function startServer() {
 
         const contents = history.map((m: any) => ({
           role: m.role === 'model' || m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content || m.text }]
+          parts: [{ text: m.content || m.text || '' }]
         }));
-        contents.push({ role: 'user', parts: [{ text: message }] });
+        contents.push({ role: 'user', parts: [{ text: message || '' }] });
 
         const response = await ai.models.generateContent({
           model: modelName,
@@ -125,7 +129,7 @@ async function startServer() {
         // Save AI response to DB
         if (persona?.id) {
           db.prepare("INSERT INTO messages (id, personaId, role, text, timestamp, createdAt) VALUES (?, ?, ?, ?, ?, ?)")
-            .run(Date.now().toString(), persona.id, 'model', cleanedText, new Date().toLocaleTimeString(), Date.now());
+            .run(generateId(), persona.id, 'model', cleanedText, new Date().toLocaleTimeString(), Date.now());
         }
 
         // Send Push Notification

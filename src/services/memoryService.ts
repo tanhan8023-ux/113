@@ -19,7 +19,7 @@ export const memoryService = {
 
   async saveMemory(preference: string, context: string): Promise<void> {
     const memories = await this.getMemories();
-    if (preference && !memories.preferences.includes(preference)) {
+    if (preference && memories.preferences && !memories.preferences.includes(preference)) {
       memories.preferences.push(preference);
     }
     if (context) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Heart, MessageCircle, Send, RefreshCw, Plus, X, Bell, UserPlus, Trash2, Reply, RotateCcw, Copy } from 'lucide-react';
 import { TreeHolePost, Persona, UserProfile, ApiSettings, WorldbookSettings, TreeHoleComment, TreeHoleNotification, TreeHoleMessage, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchAiResponse } from '../services/aiService';
 import { GoogleGenAI } from '@google/genai';
@@ -112,7 +113,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
       content = aiResponse.responseText;
       
       // Clean up potential quotes or extra text
-      content = content.replace(/^["']|["']$/g, '').trim();
+      content = (content || '').replace(/^["']|["']$/g, '').trim();
     } catch (e) {
       console.error("Failed to generate post content", e);
       // Fallback content
@@ -131,7 +132,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     
     for (let i = 0; i < commentCount; i++) {
       newComments.push({
-        id: 'thc-refresh-' + Date.now() + '-' + i,
+        id: generateId(),
         authorId: 'th_npc_' + Date.now() + '_c_' + i,
         authorName: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)],
         authorAvatar: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
@@ -142,7 +143,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     }
 
     const newPost: TreeHolePost = {
-      id: 'th-' + Date.now(),
+      id: generateId(),
       authorId: 'th_npc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
       authorName: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)],
       authorAvatar: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
@@ -190,7 +191,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     if (!newPostContent.trim()) return;
     
     const newPost: TreeHolePost = {
-      id: 'user-th-' + Date.now(),
+      id: generateId(),
       authorId: 'user',
       authorName: '匿名用户',
       authorAvatar: userProfile.avatarUrl || 'https://picsum.photos/seed/user/100/100',
@@ -221,7 +222,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
         if (!isComment) {
           setPosts(prev => prev.map(p => p.id === newPost.id ? { ...p, likes: p.likes + 1 } : p));
           setNotifications(prev => [{
-            id: 'n-' + Date.now() + '-' + i,
+            id: generateId(),
             type: 'like',
             postId: newPost.id,
             authorName: npcName,
@@ -261,10 +262,10 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
               true
             );
             
-            const cleanedReply = aiResponse.responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
+            const cleanedReply = (aiResponse.responseText || '').replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
             
             const newComment: TreeHoleComment = {
-              id: 'thc-' + Date.now() + '-' + i,
+              id: generateId(),
               authorId: npcId,
               authorName: npcName,
               authorAvatar: npcAvatar,
@@ -278,7 +279,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
             ));
   
             setNotifications(prev => [{
-              id: 'n-' + Date.now() + '-' + i,
+              id: generateId(),
               type: 'comment',
               postId: newPost.id,
               authorName: npcName,
@@ -303,7 +304,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     const currentCommentText = commentText;
 
     const newComment: TreeHoleComment = {
-      id: 'user-thc-' + Date.now(),
+      id: generateId(),
       authorId: 'user',
       authorName: '我',
       authorAvatar: userProfile.avatarUrl || 'https://picsum.photos/seed/user/100/100',
@@ -365,14 +366,14 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
               true
             );
             
-            const cleanedReply = aiResponse.responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
+            const cleanedReply = (aiResponse.responseText || '').replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
 
             if (cleanedReply === 'IGNORE' || cleanedReply.includes('IGNORE')) {
               return;
             }
             
             const npcReplyComment: TreeHoleComment = {
-              id: 'thc-reply-' + Date.now(),
+              id: generateId(),
               authorId: npcId,
               authorName: npcName,
               authorAvatar: npcAvatar,
@@ -387,7 +388,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
             ));
 
             setNotifications(prev => [{
-              id: 'n-reply-' + Date.now(),
+              id: generateId(),
               type: 'comment',
               postId: currentPostId,
               authorName: npcName,
@@ -458,7 +459,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
       
       return {
         ...prev,
-        [activeChatNpcInfo.id]: chat.map(m => m.id ? m : { ...m, id: `legacy-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` })
+        [activeChatNpcInfo.id]: chat.map(m => m.id ? m : { ...m, id: generateId() })
       };
     });
   }, [activeChatNpcInfo]);
@@ -467,7 +468,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     if (!messageText.trim() || !activeChatNpcInfo) return;
 
     const newMessage: TreeHoleMessage = {
-      id: 'msg-' + Date.now(),
+      id: generateId(),
       text: messageText,
       isMe: true,
       time: Date.now(),
@@ -521,7 +522,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
           timeoutPromise
         ]) as string;
 
-        const cleanedResponse = responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
+        const cleanedResponse = (responseText || '').replace(/\[ID:\s*[^\]]+\]/gi, '').trim();
         
         // Split by sentence endings (period, question mark, exclamation mark) or newlines
         // This matches the logic in ChatScreen for consistent segmentation
@@ -561,7 +562,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
              const contactId = 'th_contact_' + Date.now();
 
              contactMsg = {
-               id: 'msg-contact-' + Date.now() + '-' + index,
+               id: generateId(),
                text: `[推荐名片] ${name}`,
                isMe: false,
                time: Date.now() + 100,
@@ -574,7 +575,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
                }
              };
              
-             messageText = part.replace(contactMatch[0], '').trim();
+             messageText = (part || '').replace(contactMatch[0], '').trim();
            }
 
            // Base delay + typing time simulation
@@ -583,7 +584,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
            setTimeout(() => {
              if (messageText) {
                 const textMsg: TreeHoleMessage = {
-                  id: 'msg-ai-' + Date.now() + '-' + index,
+                  id: generateId(),
                   text: messageText,
                   isMe: false,
                   time: Date.now()

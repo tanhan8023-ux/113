@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, Heart, MessageCircle, Share2, Plus, User, Home, Search, Bookmark, ArrowLeft, Camera, Image as ImageIcon, X, Send, Compass, ShoppingBag } from 'lucide-react';
 import { XHSPost, Persona, UserProfile, ApiSettings, WorldbookSettings, Message, ThemeSettings } from '../types';
+import { generateId } from '../utils/id';
 import { motion, AnimatePresence } from 'motion/react';
 import { fetchAiResponse } from '../services/aiService';
 import { GoogleGenAI } from '@google/genai';
@@ -272,7 +273,7 @@ export function XHSScreen({
           blockInstruction
         );
 
-        let cleanedResponse = aiResponse.responseText.replace(/\[ID:\s*[\d.]+\]/gi, '').trim();
+        let cleanedResponse = (aiResponse.responseText || '').replace(/\[ID:\s*[\d.]+\]/gi, '').trim();
         
         if (cleanedResponse.includes('[ACTION:UNBLOCK]')) {
           cleanedResponse = cleanedResponse.replace('[ACTION:UNBLOCK]', '').trim();
@@ -368,7 +369,7 @@ export function XHSScreen({
     setPosts(prev => prev.map(post => {
       if (post.id === selectedPostId) {
         const newComment = {
-          id: Date.now().toString(),
+          id: generateId(),
           authorId: 'user',
           authorName: userProfile.name,
           authorAvatar: userProfile.avatarUrl || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80',
@@ -405,7 +406,7 @@ export function XHSScreen({
     if (!newPostTitle.trim() || !newPostContent.trim()) return;
 
     const newPost: XHSPost = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       authorName: userProfile.name,
       authorAvatar: userProfile.avatarUrl || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80',
@@ -440,7 +441,7 @@ export function XHSScreen({
 
         fetchAiResponse(prompt, [], target, apiSettings, worldbook, userProfile, aiRef).then(res => {
           const aiMsg = {
-            text: res.responseText.replace(/\[ID:\s*[\d.]+\]/gi, '').trim(),
+            text: (res.responseText || '').replace(/\[ID:\s*[\d.]+\]/gi, '').trim(),
             isMe: false,
             time: Date.now()
           };
