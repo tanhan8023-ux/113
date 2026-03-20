@@ -767,12 +767,20 @@ export default function App() {
         if (personaIds.length === 0) return;
 
         for (const personaId of personaIds) {
+          if (!personaId) continue;
           const personaMsgs = messages.filter(m => m.personaId === personaId).sort((a, b) => b.createdAt - a.createdAt);
           const lastTimestamp = personaMsgs.length > 0 ? personaMsgs[0].createdAt : 0;
           
           const response = await fetch(`/api/messages/${personaId}?lastTimestamp=${lastTimestamp}`);
           if (response.ok) {
-            const serverMsgs = await response.json();
+            const text = await response.text();
+            let serverMsgs;
+            try {
+              serverMsgs = JSON.parse(text);
+            } catch (e) {
+              console.error("Failed to parse JSON for persona:", personaId, "Response:", text);
+              throw new Error(`Failed to parse JSON for persona: ${personaId}. Response: ${text.substring(0, 100)}`);
+            }
             if (serverMsgs.length > 0) {
               setMessages(prev => {
                 const newMsgs = [...prev];

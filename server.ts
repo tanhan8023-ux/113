@@ -42,6 +42,7 @@ async function startServer() {
   app.get("/api/messages/:personaId", (req, res) => {
     const { personaId } = req.params;
     const { lastTimestamp } = req.query;
+    console.log(`API Request: /api/messages/${personaId}, lastTimestamp: ${lastTimestamp}`);
     
     let query = "SELECT * FROM messages WHERE personaId = ?";
     const params = [personaId];

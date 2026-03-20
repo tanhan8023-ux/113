@@ -1252,7 +1252,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
               return;
             }
 
-            const processed = processAiResponseParts(aiResponse.responseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+            const processed = processAiResponseParts(aiResponse.responseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
             const aiQuotedId = processed.quotedMessageId;
 
             if (processed.orderItems && processed.orderItems.length > 0 && onAiOrder) {
@@ -1357,7 +1357,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     });
   };
 
-  const processAiResponseParts = (responseText: string | { responseText: string }, aiQuotedId?: string, isSegmentResponse?: boolean) => {
+  const processAiResponseParts = (responseText: string | { responseText: string }, userProfile: UserProfile, aiQuotedId?: string, isSegmentResponse?: boolean) => {
     let text = typeof responseText === 'string' ? responseText : responseText.responseText;
     
     // Extract and remove ||NEXT:xxx|| tags
@@ -1844,7 +1844,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         
         let finalResponseText = responseTextWithQuote;
         
-        const processed = processAiResponseParts(finalResponseText, undefined, personaForResponse.isSegmentResponse || worldbook.forceSegmentResponse);
+        const processed = processAiResponseParts(finalResponseText, userProfile, undefined, personaForResponse.isSegmentResponse || worldbook.forceSegmentResponse);
         const aiQuotedId = processed.quotedMessageId;
 
         if (processed.orderItems && processed.orderItems.length > 0 && onAiOrder) {
@@ -1928,7 +1928,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                     content: `[ID: ${m.id}] ${m.id === lastAiMsgId ? '[此消息已撤回]' : (m.isRecalled ? '[此消息已撤回]' : m.text)}`
                   }));
                   const aiResponse = await fetchAiResponse(recallPrompt, recallContext, currentPersona, apiSettings, worldbook, userProfile, aiRef);
-                  const processedRecall = processAiResponseParts(aiResponse.responseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+                  const processedRecall = processAiResponseParts(aiResponse.responseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
                   
                   for (let i = 0; i < processedRecall.parts.length; i++) {
                     const part = processedRecall.parts[i];
@@ -2064,7 +2064,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           setMessages(prev => prev.map(m => (m.role === 'user' && (!m.isRead || m.status !== 'read')) ? { ...m, isRead: true, status: 'read' } : m));
         }
         
-        const processed = processAiResponseParts(aiResponse.responseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+        const processed = processAiResponseParts(aiResponse.responseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
         const aiQuotedId = processed.quotedMessageId;
 
         if (processed.orderItems && processed.orderItems.length > 0 && onAiOrder) {
@@ -2190,7 +2190,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           setMessages(prev => prev.map(m => (m.role === 'user' && (!m.isRead || m.status !== 'read')) ? { ...m, isRead: true, status: 'read' } : m));
         }
         
-        const processed = processAiResponseParts(aiResponse.responseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+        const processed = processAiResponseParts(aiResponse.responseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
         
         for (let i = 0; i < processed.parts.length; i++) {
           const part = processed.parts[i];
@@ -2280,7 +2280,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         undefined,
         true
       );
-      const processed = processAiResponseParts(aiResponse.responseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+      const processed = processAiResponseParts(aiResponse.responseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
       let innerVoiceText = processed.parts.map(p => p.text).join(' ');
       
       // Extract mood
@@ -2372,7 +2372,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       
       let finalResponseText = aiResponse.responseText;
       
-      const processed = processAiResponseParts(finalResponseText, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
+      const processed = processAiResponseParts(finalResponseText, userProfile, undefined, currentPersona.isSegmentResponse || worldbook.forceSegmentResponse);
       const aiQuotedId = processed.quotedMessageId;
 
       if (processed.orderItems && processed.orderItems.length > 0 && onAiOrder) {
