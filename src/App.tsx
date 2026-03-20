@@ -1571,6 +1571,36 @@ export default function App() {
           }
         }
 
+        // Mark user messages as read since AI is now "reading" them
+        if (!targetPersona.isOffline) {
+          setMessages(prev => prev.map(m => 
+            (m.personaId === personaId && !m.groupId && m.role === 'user' && (!m.isRead || m.status !== 'read')) 
+              ? { ...m, isRead: true, status: 'read' } 
+              : m
+          ));
+        }
+
+        // If it's a transfer, show the "Received" bubble first
+        if (msgType === 'transfer') {
+          const receiptMsg: Message = {
+            id: (Date.now() + 100).toString(),
+            personaId: personaId,
+            role: 'model',
+            text: '', 
+            msgType: 'transfer',
+            amount: amount,
+            transferNote: transferNote,
+            isReceived: true,
+            timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            isRead: true,
+            createdAt: Date.now(),
+            theaterId
+          };
+          setMessages(prev => [...prev, receiptMsg]);
+          // Small delay before typing starts
+          await new Promise(resolve => setTimeout(resolve, 600));
+        }
+
         const defaultStickers = ['大笑', '哭泣', '猫猫头', '点赞', '心碎', '思考', '开心', '难过', '生气', '爱心', '大哭', '酷', '睡觉'];
         const customStickerNames = userProfile.stickers?.map(s => s.name) || [];
         const allStickers = [...defaultStickers, ...customStickerNames].join(', ');
