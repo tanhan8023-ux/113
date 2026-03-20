@@ -28,6 +28,7 @@ import { ChatInput } from './ChatInput';
 import { ChatListView } from './ChatListView';
 import { AiPhoneModal } from './AiPhoneModal';
 import { WalletScreen } from './WalletScreen';
+import { generateId } from '../utils/id';
 
 interface Props {
   personas: Persona[];
@@ -423,7 +424,7 @@ export function ChatScreen({
                 setIsTyping(false);
 
                 const aiMsg: Message = {
-                  id: (Date.now() + Math.random() + i).toString(),
+                  id: generateId(),
                   personaId: persona.id,
                   groupId: currentGroupId,
                   role: 'model',
@@ -521,7 +522,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                 setIsTyping(false);
 
                 const aiMsg: Message = {
-                  id: (Date.now() + Math.random() + i).toString(),
+                  id: generateId(),
                   personaId: persona.id,
                   groupId: currentGroupId,
                   role: 'model',
@@ -706,7 +707,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                   setIsTyping(false);
 
                   const aiMsg: Message = {
-                    id: (Date.now() + Math.random() + i).toString(),
+                    id: generateId(),
                     personaId: persona.id,
                     groupId: currentGroupId,
                     role: 'model',
@@ -828,7 +829,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         await new Promise(resolve => setTimeout(resolve, typingDelay));
         
         const newMessage: Message = {
-          id: (Date.now() + Math.random()).toString(),
+          id: generateId(),
           personaId: persona.id,
           role: 'model',
           text: partText,
@@ -1634,7 +1635,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     // Record transaction for user transfer
     if (msgType === 'transfer' && amount && currentPersona) {
       const newTx: Transaction = {
-        id: Date.now().toString() + '-user',
+        id: generateId() + '-user',
         type: 'payment',
         amount: amount,
         description: `转账给 ${currentPersona.name}`,
@@ -1695,7 +1696,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         // If it's a transfer, show the "Received" bubble first
         if (msgType === 'transfer') {
           const receiptMsg: Message = {
-            id: (Date.now() + 100).toString(),
+            id: generateId(),
             personaId: personaForResponse.id,
             role: 'model',
             text: '', 
