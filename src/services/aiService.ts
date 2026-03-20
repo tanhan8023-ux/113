@@ -373,13 +373,20 @@ export async function fetchAiResponse(
     });
 
     if (!isSystemTask) await extractAndSaveMemory(promptText, text, aiRef, effectiveApiSettings);
-    return { responseText: processAiResponse(text), imageDescription };
+    return { responseText: processAiResponse(text, persona.name), imageDescription };
   } catch (error: any) {
     console.error("AI Response Error:", error);
     throw error;
   }
 }
 
-export function processAiResponse(responseText: string) {
-  return responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').replace(/\|\|\|/g, '').trim();
+export function processAiResponse(responseText: string, personaName?: string) {
+  let processed = responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').replace(/\|\|\|/g, '').trim();
+  if (personaName) {
+    const prefix = `[${personaName}]:`;
+    if (processed.startsWith(prefix)) {
+      processed = processed.substring(prefix.length).trim();
+    }
+  }
+  return processed;
 }
