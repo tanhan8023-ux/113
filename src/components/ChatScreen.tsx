@@ -812,7 +812,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       if (responseText.startsWith(prefix)) {
         responseText = responseText.substring(prefix.length).trim();
       }
-      const processed = processAiResponseParts(responseText, undefined, persona.isSegmentResponse || worldbook.forceSegmentResponse);
+      const processed = processAiResponseParts(responseText, userProfile, undefined, persona.isSegmentResponse || worldbook.forceSegmentResponse);
       
       if (responseText.includes('[NO_REPLY]')) {
         setIsTyping(false);

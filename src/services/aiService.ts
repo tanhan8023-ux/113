@@ -180,7 +180,7 @@ export async function generateImage(prompt: string, providedApiKey: string, prov
 export async function generatePersonaStatus(persona: Persona, apiSettings: ApiSettings, worldbook: WorldbookSettings, userProfile: UserProfile, aiRef: any) {
   const prompt = `写一段短状态。`;
   const { responseText } = await fetchAiResponse(prompt, [], persona, apiSettings, worldbook, userProfile, aiRef, false, "", undefined, undefined, undefined, undefined, undefined, true);
-  return responseText;
+  return responseText || "";
 }
 
 export async function checkIfPersonaIsOffline(persona: Persona, apiSettings: ApiSettings, worldbook: WorldbookSettings, userProfile: UserProfile, aiRef: any, context: any[] = []) {
