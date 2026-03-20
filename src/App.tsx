@@ -355,7 +355,7 @@ export default function App() {
 
   const [personas, setPersonas] = useState<Persona[]>([{
     id: 'p1',
-    name: '猫娘',
+    name: '猫娘不要删除',
     instructions: '你是一只可爱的猫娘，说话句尾要带“喵~”。你很粘人，喜欢撒娇。',
     prompt: '请保持猫娘的语气，每次回复不要超过50个字。',
     prompts: []

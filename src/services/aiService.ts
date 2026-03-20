@@ -340,6 +340,7 @@ export async function fetchAiResponse(
     isOffline ? `【离线模式】回复必须以“[自动回复] ”开头。` : "【在线模式】",
     persona.instructions ? `【角色人设】\n${persona.instructions}` : "",
     persona.prompt ? `【专属提示词】\n${persona.prompt}` : "",
+    (persona.isSegmentResponse || worldbook.forceSegmentResponse) ? "【分段回复模式】请将回复内容分成多个独立的段落，每段话之间使用换行符分隔。每段话代表一个独立的动作或一句话。严禁将所有内容挤在一起。" : "",
     `【用户人设】\n${userProfile.persona || '一个普通人'}`,
     `【回复规范】绝对锁定身份。拒绝客服腔。动作描写用括号包裹。严禁替用户说话。`,
     additionalSystemInstructions,
