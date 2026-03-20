@@ -1534,7 +1534,29 @@ export default function App() {
   };
 
   const aiResponseTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const pendingAiCallbacks = useRef<Record<string, () => void>>({});
   const pendingRequests = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // When page goes to background, force all pending AI callbacks to execute immediately
+        // to give them a chance to complete before the browser suspends JS execution.
+        (window as any).isUserTyping = false;
+        Object.keys(pendingAiCallbacks.current).forEach(personaId => {
+          const callback = pendingAiCallbacks.current[personaId];
+          if (callback) {
+            if (aiResponseTimeouts.current[personaId]) {
+              clearTimeout(aiResponseTimeouts.current[personaId]);
+            }
+            callback();
+          }
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   const triggerAiResponse = React.useCallback(async (params: {
     personaId: string,
@@ -1559,11 +1581,12 @@ export default function App() {
     pendingRequests.current[personaId] = (pendingRequests.current[personaId] || 0) + 1;
     setTypingPersonas(prev => ({ ...prev, [personaId]: true }));
 
-    aiResponseTimeouts.current[personaId] = setTimeout(async () => {
+    const executeAiResponse = async () => {
+      delete pendingAiCallbacks.current[personaId];
       const currentTimeoutId = aiResponseTimeouts.current[personaId];
       try {
         // Wait until the user finishes typing
-        while ((window as any).isUserTyping) {
+        while ((window as any).isUserTyping && !document.hidden) {
           await new Promise(resolve => setTimeout(resolve, 500));
           // If a new request was triggered while waiting, abort this one
           if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
@@ -1763,7 +1786,15 @@ export default function App() {
           setTypingPersonas(prev => ({ ...prev, [personaId]: false }));
         }
       }
-    }, 2000);
+    };
+
+    pendingAiCallbacks.current[personaId] = executeAiResponse;
+    const delay = document.hidden ? 0 : 2000;
+    aiResponseTimeouts.current[personaId] = setTimeout(() => {
+      if (pendingAiCallbacks.current[personaId]) {
+        pendingAiCallbacks.current[personaId]();
+      }
+    }, delay);
   }, [personas, messages, apiSettings, worldbook, userProfile, subscriptionId, songs, currentSongIndex, listeningWithPersonaId]);
 
   const handleSendMessage = React.useCallback(async (text: string, personaId: string) => {
