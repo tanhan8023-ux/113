@@ -403,8 +403,48 @@ export default function App() {
 
   // Lifted State
   const [messages, setMessages] = useState<Message[]>([]);
+  const lastNotifiedMsgId = useRef<string | null>(null);
+
   useEffect(() => {
-    localforage.getItem<Message[]>('messages').then(m => m && setMessages(m));
+    if (messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+    
+    if (lastMessage.role === 'model' && document.hidden && lastMessage.id !== lastNotifiedMsgId.current) {
+      lastNotifiedMsgId.current = lastMessage.id;
+      const persona = personas.find(p => p.id === lastMessage.personaId);
+      if (persona && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          const title = persona.name;
+          const body = lastMessage.text || (lastMessage.msgType === 'image' ? '[图片]' : '[消息]');
+          
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then(registration => {
+              registration.showNotification(title, {
+                body,
+                icon: persona.avatarUrl
+              });
+            }).catch(() => {
+              new Notification(title, { body, icon: persona.avatarUrl });
+            });
+          } else {
+            new Notification(title, { body, icon: persona.avatarUrl });
+          }
+        } catch (e) {
+          console.error('Notification error:', e);
+        }
+      }
+    }
+  }, [messages, personas]);
+
+  useEffect(() => {
+    localforage.getItem<Message[]>('messages').then(m => {
+      if (m) {
+        setMessages(m);
+        if (m.length > 0) {
+          lastNotifiedMsgId.current = m[m.length - 1].id;
+        }
+      }
+    });
   }, []);
   useEffect(() => {
     localforage.setItem('messages', messages);
