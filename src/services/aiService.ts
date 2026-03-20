@@ -381,6 +381,7 @@ export async function fetchAiResponse(
 }
 
 export function processAiResponse(responseText: string, personaName?: string) {
+  if (!responseText) return "";
   let processed = responseText.replace(/\[ID:\s*[^\]]+\]/gi, '').replace(/\|\|\|/g, '').trim();
   if (personaName) {
     const prefix = `[${personaName}]:`;
