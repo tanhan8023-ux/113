@@ -513,7 +513,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     // Mark this message as evaluated so we don't re-trigger on other state changes
     lastEvaluatedGroupMsgId.current = lastMsg.id;
 
-    // Wait a random amount of time (2-5 seconds) before deciding to reply
+    // Wait a very short amount of time (0.5-1.5 seconds) before deciding to reply
     const timer = setTimeout(async () => {
       const currentMessages = messagesRef.current;
       const latestMsg = currentMessages[currentMessages.length - 1];
@@ -525,12 +525,23 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       const otherMemberIds = currentGroup.memberIds.filter(id => id !== 'user');
       if (otherMemberIds.length === 0) return;
 
-      // Shuffle members to give everyone a fair chance
-      const shuffledMembers = [...otherMemberIds].sort(() => Math.random() - 0.5);
+      // Shuffle members to give everyone a fair chance, but put mentioned ones first
+      const shuffledMembers = [...otherMemberIds].sort((a, b) => {
+        const personaA = personas.find(p => p.id === a);
+        const personaB = personas.find(p => p.id === b);
+        const aMentioned = personaA && lastMsg.text.includes(`@${personaA.name}`) ? 1 : 0;
+        const bMentioned = personaB && lastMsg.text.includes(`@${personaB.name}`) ? 1 : 0;
+        if (aMentioned !== bMentioned) return bMentioned - aMentioned;
+        return Math.random() - 0.5;
+      });
 
       // Chance for multiple people to reply (cross-talk)
       let replyCount = 0;
-      const maxReplies = Math.random() > 0.7 ? 2 : 1; // 30% chance for 2 people to reply
+      const mentionedCount = shuffledMembers.filter(id => {
+        const p = personas.find(p => p.id === id);
+        return p && lastMsg.text.includes(`@${p.name}`);
+      }).length;
+      const maxReplies = Math.max(mentionedCount, Math.random() > 0.7 ? 2 : 1); // 30% chance for 2 people to reply, or all mentioned
 
       for (const memberId of shuffledMembers) {
         if (replyCount >= maxReplies) break;
@@ -631,7 +642,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                   
                   // Simulate typing
                   setIsTyping(true);
-                  await new Promise(r => setTimeout(r, 1000 + text.length * 30));
+                  await new Promise(r => setTimeout(r, 300 + text.length * 10));
                   setIsTyping(false);
 
                   const aiMsg: Message = {
@@ -650,14 +661,14 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
 
                   // Wait between segments
                   if (i < texts.length - 1) {
-                    await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
+                    await new Promise(r => setTimeout(r, 500 + Math.random() * 1000));
                   }
                 }
               })();
               
               // If multiple people are replying, add a delay before the next person starts
               if (replyCount < maxReplies) {
-                await new Promise(r => setTimeout(r, 1000 + Math.random() * 2000));
+                await new Promise(r => setTimeout(r, 500 + Math.random() * 1000));
               }
             }
           }
@@ -665,7 +676,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           console.error("Group spontaneous reply error:", e);
         }
       }
-    }, Math.random() * 3000 + 2000);
+    }, Math.random() * 1000 + 500);
 
     return () => clearTimeout(timer);
   }, [messages, currentGroupId, isActive, groups, personas, apiSettings, worldbook, userProfile]);

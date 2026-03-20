@@ -333,7 +333,9 @@ export async function fetchAiResponse(
   // 构建完整的系统指令
   const fullSystemInstruction = [
     worldbook.globalPrompt ? `【全局规则】\n${worldbook.globalPrompt}` : "",
+    ...(worldbook.globalPrompts || []).filter(Boolean).map(p => `【额外全局规则】\n${p}`),
     worldbook.jailbreakPrompt ? `【破限协议】\n${worldbook.jailbreakPrompt}` : "",
+    ...(worldbook.jailbreakPrompts || []).filter(Boolean).map(p => `【额外破限协议】\n${p}`),
     `【当前时间】${timeString}。`,
     isOffline ? `【离线模式】回复必须以“[自动回复] ”开头。` : "【在线模式】",
     persona.instructions ? `【角色人设】\n${persona.instructions}` : "",
