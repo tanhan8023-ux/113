@@ -412,26 +412,45 @@ export default function App() {
     if (lastMessage.role === 'model' && document.hidden && lastMessage.id !== lastNotifiedMsgId.current) {
       lastNotifiedMsgId.current = lastMessage.id;
       const persona = personas.find(p => p.id === lastMessage.personaId);
-      if (persona && 'Notification' in window && Notification.permission === 'granted') {
-        try {
-          const title = persona.name;
-          const body = lastMessage.text || (lastMessage.msgType === 'image' ? '[图片]' : '[消息]');
-          
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.ready.then(registration => {
-              registration.showNotification(title, {
-                body,
-                icon: persona.avatarUrl
+      if (persona) {
+        const title = persona.name;
+        const body = lastMessage.text || (lastMessage.msgType === 'image' ? '[图片]' : '[消息]');
+        
+        // 1. Try Web Notifications
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, {
+                  body,
+                  icon: persona.avatarUrl
+                });
+              }).catch(() => {
+                new Notification(title, { body, icon: persona.avatarUrl });
               });
-            }).catch(() => {
+            } else {
               new Notification(title, { body, icon: persona.avatarUrl });
-            });
-          } else {
-            new Notification(title, { body, icon: persona.avatarUrl });
+            }
+          } catch (e) {
+            console.error('Notification error:', e);
           }
-        } catch (e) {
-          console.error('Notification error:', e);
         }
+        
+        // 2. Always update document title as a fallback indicator
+        const originalTitle = document.title;
+        document.title = `【新消息】${title}发来了一条消息`;
+        
+        // Vibrate if supported
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200]);
+        }
+        
+        // Restore title when user comes back
+        const restoreTitle = () => {
+          document.title = 'AI 微信'; // Or whatever the default title is
+          document.removeEventListener('visibilitychange', restoreTitle);
+        };
+        document.addEventListener('visibilitychange', restoreTitle);
       }
     }
   }, [messages, personas]);
