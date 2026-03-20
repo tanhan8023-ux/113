@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Minimize2, X, Plus } from 'lucide-react';
 import { Message, Persona, UserProfile } from '../types';
+import { TransferCard } from './TransferCard';
 
 interface ChatBubbleProps {
   listeningWith: Persona;
@@ -88,8 +89,11 @@ export const ChatBubble = React.memo(function ChatBubble({
                 </div>
                 <div className={`max-w-[80%] px-3 py-1.5 rounded-xl text-[10px] leading-relaxed relative group ${msg.role === 'user' ? 'bg-indigo-500/80 text-white rounded-tr-sm' : 'bg-white/10 backdrop-blur-md text-white/90 rounded-tl-sm border border-white/5'}`}>
                   {(() => {
+                    if (msg.text.includes("【微信路线】") || msg.text.includes("金额：")) {
+                      return <TransferCard text={msg.text} />;
+                    }
                     // Strip hidden tags
-                    const cleanText = (msg.text || '').replace(/\|\|NEXT:[^|]+\|\|/g, '').trim();
+                    const cleanText = msg.text.replace(/\|\|NEXT:[^|]+\|\|/g, '').trim();
                     const parts = cleanText.split(/(\[STICKER:\s*[^\]]+\])/g);
                     return parts.map((part, i) => {
                       const match = part.match(/\[STICKER:\s*([^\]]+)\]/);
