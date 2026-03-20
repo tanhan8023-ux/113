@@ -99,6 +99,52 @@ const renderTextWithStickers = (text: string) => {
   });
 };
 
+const DanmakuLayer = ({ messages }: { messages: Message[] }) => {
+  const [danmakus, setDanmakus] = useState<{ id: string; text: string; top: number; duration: number }[]>([]);
+  const lastProcessedId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.id === lastProcessedId.current) return;
+    lastProcessedId.current = lastMsg.id;
+
+    // Only show Danmaku for new messages (strip descriptions and quotes)
+    const text = lastMsg.text.replace(/[\(\*].*?[\)\*]/g, '').replace(/["\u201c\u201d]/g, '').trim();
+    if (!text) return;
+
+    const newDanmaku = {
+      id: lastMsg.id,
+      text,
+      top: 15 + Math.random() * 60, // 15% to 75% height
+      duration: 8 + Math.random() * 4, // 8s to 12s
+    };
+
+    setDanmakus(prev => [...prev.slice(-20), newDanmaku]);
+  }, [messages]);
+
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <AnimatePresence>
+        {danmakus.map(d => (
+          <motion.div
+            key={d.id}
+            initial={{ x: '100%' }}
+            animate={{ x: '-150%' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: d.duration, ease: 'linear' }}
+            onAnimationComplete={() => setDanmakus(prev => prev.filter(item => item.id !== d.id))}
+            className="absolute whitespace-nowrap text-white/80 font-medium text-lg drop-shadow-md"
+            style={{ top: `${d.top}%` }}
+          >
+            {d.text}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export function ChatScreen({ 
   personas, setPersonas, userProfile, setUserProfile, apiSettings, theme, worldbook, 
   messages, setMessages, moments, setMoments, onClearUnread, onBack, onNavigate, 
@@ -167,7 +213,8 @@ export function ChatScreen({
     hideDelimiters: true,
     fontSerif: true,
     userRoleName: '',
-    aiRoleName: ''
+    aiRoleName: '',
+    danmakuEnabled: true
   });
   
   // Transfer State
@@ -5097,6 +5144,13 @@ ${recentMessages}
                   <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/20 to-black/90" />
                 </div>
 
+                {/* Danmaku Layer */}
+                {theaterSettings.danmakuEnabled && (
+                  <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
+                    <DanmakuLayer messages={theaterMessages} />
+                  </div>
+                )}
+
                 {/* Header */}
                 <div className={`pb-4 flex items-center px-4 z-10 bg-gradient-to-b from-black/90 to-transparent ${theme.showStatusBar !== false ? 'pt-14' : 'pt-12'}`}>
                   <button onClick={() => setActiveTheaterScript(null)} className="text-white/80 p-2 hover:text-white transition-colors">
@@ -5174,6 +5228,19 @@ ${recentMessages}
                         </div>
 
                         <div className="space-y-6">
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-xs text-white/40 uppercase tracking-widest">
+                              <span>剧场弹幕</span>
+                              <span>{theaterSettings.danmakuEnabled ? '开启' : '关闭'}</span>
+                            </div>
+                            <button 
+                              onClick={() => setTheaterSettings(prev => ({ ...prev, danmakuEnabled: !prev.danmakuEnabled }))}
+                              className={`w-full p-3 rounded-xl border transition-all text-sm ${theaterSettings.danmakuEnabled ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' : 'bg-white/5 border-white/10 text-white/40'}`}
+                            >
+                              {theaterSettings.danmakuEnabled ? '弹幕模式已开启' : '点击开启弹幕模式'}
+                            </button>
+                          </div>
+
                           <div className="space-y-3">
                             <div className="flex justify-between text-xs text-white/40 uppercase tracking-widest">
                               <span>背景亮度</span>

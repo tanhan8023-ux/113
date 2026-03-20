@@ -600,6 +600,18 @@ export function ApiSettingsScreen({ settings, personas: initialPersonas, userPro
               )}
             </div>
 
+            <div className="bg-blue-50 p-3 rounded-xl border border-blue-100">
+              <p className="text-[11px] text-blue-600 leading-relaxed">
+                提示：由于预览窗口限制，Edge/Chrome 可能会拦截通知。如果无法收到，请点击下方按钮在独立页面运行。
+              </p>
+              <button 
+                onClick={() => window.open(window.location.href, '_blank')}
+                className="w-full mt-2 bg-blue-500 text-white text-[12px] py-2 rounded-lg font-medium active:bg-blue-600"
+              >
+                在新标签页中打开应用
+              </button>
+            </div>
+
             <button 
               onClick={onTestPush}
               className="w-full bg-orange-500 text-white font-medium py-3 rounded-xl active:bg-orange-600 transition-colors shadow-sm shadow-orange-500/30 text-[13px]"
