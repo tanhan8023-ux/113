@@ -807,9 +807,14 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         persona.isOffline
       );
 
-      const processed = processAiResponseParts(response.responseText, undefined, persona.isSegmentResponse || worldbook.forceSegmentResponse);
+      let responseText = response.responseText;
+      const prefix = `[${persona.name}]:`;
+      if (responseText.startsWith(prefix)) {
+        responseText = responseText.substring(prefix.length).trim();
+      }
+      const processed = processAiResponseParts(responseText, undefined, persona.isSegmentResponse || worldbook.forceSegmentResponse);
       
-      if (response.responseText.includes('[NO_REPLY]')) {
+      if (responseText.includes('[NO_REPLY]')) {
         setIsTyping(false);
         setUnreadPesterCount(prev => prev + 1); 
         return;
@@ -956,7 +961,12 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       );
       
       if (response && response.responseText) {
-        setTempAutoReplyContent(response.responseText.trim());
+        let text = response.responseText.trim();
+        const prefix = `[${dummyPersona.name}]:`;
+        if (text.startsWith(prefix)) {
+          text = text.substring(prefix.length).trim();
+        }
+        setTempAutoReplyContent(text);
       }
     } catch (e) {
       console.error("Failed to generate AI auto-reply:", e);
