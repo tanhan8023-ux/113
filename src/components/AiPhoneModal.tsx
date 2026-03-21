@@ -11,6 +11,7 @@ interface AiPhoneModalProps {
   onUpdatePersona?: (updates: Partial<Persona>) => void;
   allMessages: Message[];
   onSendMessageAsAi: (text: string) => void;
+  onCreateGroup: (name: string, memberIds: string[]) => void;
   userProfile: UserProfile;
   apiSettings: ApiSettings;
   worldbook: WorldbookSettings;
@@ -19,7 +20,7 @@ interface AiPhoneModalProps {
 
 type AppScreen = 'home' | 'wechat' | 'contacts' | 'notes' | 'settings' | 'chat-detail' | 'wallpaper-settings' | 'icon-settings' | 'diary';
 
-export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, onSendMessageAsAi, userProfile, apiSettings, worldbook, theme }: AiPhoneModalProps) {
+export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, onSendMessageAsAi, onCreateGroup, userProfile, apiSettings, worldbook, theme }: AiPhoneModalProps) {
   const [activeScreen, setActiveScreen] = useState<AppScreen>('home');
   const [selectedChat, setSelectedChat] = useState<any>(null);
   const [time, setTime] = useState(new Date());
@@ -27,39 +28,6 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
   const [aiThought, setAiThought] = useState<string | null>(null);
   const [showThought, setShowThought] = useState(false);
   const aiRef = useRef<GoogleGenAI | null>(null);
-
-  useEffect(() => {
-    if (activeScreen !== 'home') {
-      generateAiThought(activeScreen);
-    }
-  }, [activeScreen]);
-
-  const generateAiThought = async (screen: AppScreen) => {
-      const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
-      if (!apiKey) return;
-      
-      let ai;
-      try {
-        ai = new GoogleGenAI({ apiKey });
-      } catch (e) {
-        console.error("Failed to initialize GoogleGenAI:", e);
-        return;
-      }
-    
-    const prompt = `你现在是 ${persona.name}，用户正在查看你的手机中的 ${screen} 页面。请用一句话简短地表达你此时的想法或心情，语气要符合你的人设。`;
-    
-    try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-      });
-      setAiThought(response.text || "...");
-      setShowThought(true);
-      setTimeout(() => setShowThought(false), 5000);
-    } catch (e) {
-      console.error("Failed to generate AI thought:", e);
-    }
-  };
   
   const defaultWallpaper = React.useMemo(() => {
     if (persona.mood?.includes('郁') || persona.mood?.includes('难过')) {
@@ -282,6 +250,78 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
       notes: personaNotes
     };
   }, [persona, userProfile, allMessages]);
+
+  const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[]) => {
+      const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
+      if (!apiKey) return;
+      
+      let ai;
+      try {
+        ai = new GoogleGenAI({ apiKey });
+      } catch (e) {
+        console.error("Failed to initialize GoogleGenAI:", e);
+        return;
+      }
+    
+    // 1. Analyze for suspicious activity
+    const analysisPrompt = `你现在是 ${persona.name}。请分析以下手机数据，判断是否存在“小三”或“情敌”。
+    数据：
+    联系人：${JSON.stringify(contacts)}
+    聊天记录：${JSON.stringify(messages)}
+    备忘录：${JSON.stringify(notes)}
+    
+    如果发现有暧昧备注、不清白的聊天记录或可疑的备忘录，请返回一个 JSON 对象：{ "isSuspicious": true, "thirdPartyName": "...", "reason": "...", "firstMessage": "..." }。
+    如果没有，返回 { "isSuspicious": false }。
+    只返回 JSON，不要有其他内容。`;
+
+    try {
+      const analysisResponse = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: analysisPrompt,
+        config: { responseMimeType: 'application/json' }
+      });
+      
+      const analysis = JSON.parse(analysisResponse.text || '{}');
+      if (analysis.isSuspicious) {
+        // Trigger confrontation
+        const groupName = `对峙：${persona.name} vs ${analysis.thirdPartyName}`;
+        // Find member ID for third party
+        const thirdPartyContact = contacts.find(c => c.name === analysis.thirdPartyName);
+        const memberIds = ['user', persona.id];
+        if (thirdPartyContact) {
+            memberIds.push(thirdPartyContact.id.toString());
+        }
+        
+        onCreateGroup(groupName, memberIds);
+        onSendMessageAsAi(analysis.firstMessage);
+        onClose();
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to analyze phone data:", e);
+    }
+
+    // 2. Generate normal thought
+    const prompt = `你现在是 ${persona.name}，用户正在查看你的手机中的 ${screen} 页面。请用一句话简短地表达你此时的想法或心情，语气要符合你的人设。`;
+    
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+      });
+      setAiThought(response.text || "...");
+      setShowThought(true);
+      setTimeout(() => setShowThought(false), 5000);
+    } catch (e) {
+      console.error("Failed to generate AI thought:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeScreen !== 'home') {
+      generateAiThought(activeScreen, contacts, messages, notes);
+    }
+  }, [activeScreen, contacts, messages, notes]);
 
   const handleUpdateSettings = (updates: Partial<NonNullable<Persona['aiPhoneSettings']>>) => {
     if (onUpdatePersona) {

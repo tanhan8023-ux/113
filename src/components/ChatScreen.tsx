@@ -6255,6 +6255,7 @@ ${recentMessages}
             };
             setMessages(prev => [...prev, aiMsg]);
           }}
+          onCreateGroup={onCreateGroup}
           theme={theme}
         />
       )}
