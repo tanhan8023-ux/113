@@ -1945,7 +1945,15 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
             theaterId
           };
           lastAiMsgId = aiMsg.id;
-          setMessages(prev => [...prev, aiMsg]);
+          setMessages(prev => {
+            const updatedMessages = prev.map(m => {
+              if (m.role === 'user' && !m.isRead) {
+                return { ...m, isRead: true, status: 'read' };
+              }
+              return m;
+            });
+            return [...updatedMessages, aiMsg];
+          });
           
           if (part.msgType === 'checkPhoneRequest') {
             setAiPhoneRequest({ msgId: aiMsg.id, personaId: currentPersona.id });
