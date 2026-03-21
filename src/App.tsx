@@ -1855,18 +1855,10 @@ ${recentMsgs}`;
             theaterId
           };
           setMessages(prev => [...prev, aiMsg]);
-        }
 
-        if (processed.checkPhoneRequest) {
-          // Automatic roleplay for phone checking
-          setTimeout(() => {
-            triggerAiResponse({
-              personaId,
-              text: "[系统提示：用户允许了你查看TA的手机。请开始查岗。]",
-              msgType: 'system',
-              userMsgId: generateId()
-            });
-          }, 1000);
+          if (part.msgType === 'checkPhoneRequest') {
+            setAiPhoneRequest({ personaId, msgId: aiMsg.id });
+          }
         }
 
         if (processed.shouldRecall) {
@@ -3091,6 +3083,55 @@ ${recentMsgs}`;
         )}
       </AnimatePresence>
 
+      {/* AI Phone Request Modal */}
+      <AnimatePresence>
+        {aiPhoneRequest && (
+          <div className="absolute inset-0 z-[10001] flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[40px] w-full max-w-sm overflow-hidden shadow-2xl p-10 flex flex-col items-center text-center space-y-8"
+            >
+              <div className="w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center">
+                <PhoneIcon className="w-14 h-14 text-blue-500" />
+              </div>
+              
+              <div className="space-y-3">
+                <h3 className="text-2xl font-bold text-neutral-900 tracking-tight">AI 请求查看手机</h3>
+                <p className="text-neutral-400 text-[15px] leading-relaxed px-4">
+                  AI 想要查看您的手机内容，是否允许？
+                </p>
+              </div>
+              
+              <div className="flex gap-4 w-full pt-4">
+                <button
+                  onClick={() => {
+                    if (phoneResponseHandler && aiPhoneRequest) {
+                      phoneResponseHandler(aiPhoneRequest.msgId, false);
+                    }
+                    setAiPhoneRequest(null);
+                  }}
+                  className="flex-1 py-4 bg-neutral-100 text-neutral-800 font-bold rounded-3xl active:scale-95 transition-transform text-[16px]"
+                >
+                  拒绝
+                </button>
+                <button
+                  onClick={() => {
+                    if (phoneResponseHandler && aiPhoneRequest) {
+                      phoneResponseHandler(aiPhoneRequest.msgId, true);
+                    }
+                    setAiPhoneRequest(null);
+                  }}
+                  className="flex-1 py-4 bg-blue-500 text-white font-bold rounded-3xl shadow-lg shadow-blue-200 active:scale-95 transition-transform text-[16px]"
+                >
+                  允许
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </Phone>
   );
 }

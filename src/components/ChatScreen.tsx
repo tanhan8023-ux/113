@@ -1956,7 +1956,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           });
           
           if (part.msgType === 'checkPhoneRequest') {
-            // No longer using the request modal, handled automatically in App.tsx
+            setAiPhoneRequest({ msgId: aiMsg.id, personaId: currentPersona.id });
           }
 
           // Record transaction for AI transfer (only if it's a refund, otherwise it's pending)
@@ -3735,11 +3735,36 @@ ${recentMessages}
                           )}
 
                           {msg.msgType === 'checkPhoneRequest' && (
-                            <div className="flex justify-center my-2">
-                              <div className="bg-neutral-100 text-neutral-400 text-[11px] px-3 py-1 rounded-full flex items-center gap-1.5">
-                                <Smartphone size={12} />
-                                <span>{currentPersona?.name} 正在查看你的手机...</span>
+                            <div className={`flex flex-col gap-2 rounded-xl p-3 w-64 bg-white border border-neutral-200 text-neutral-800 shadow-sm custom-bubble-ai`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                                  <Smartphone size={16} />
+                                </div>
+                                <div className="text-[14px] font-medium flex-1">请求查看手机</div>
                               </div>
+                              <div className="text-[13px] text-neutral-600 mb-2">
+                                {currentPersona?.name} 想要查看你的手机内容。
+                              </div>
+                              {msg.checkPhoneStatus === 'pending' ? (
+                                <div className="flex gap-2 border-t border-neutral-100 pt-2">
+                                  <button 
+                                    onClick={() => handleCheckPhoneResponse(msg.id, false)}
+                                    className="flex-1 py-1.5 bg-neutral-100 text-neutral-600 text-[13px] rounded-lg active:bg-neutral-200"
+                                  >
+                                    拒绝
+                                  </button>
+                                  <button 
+                                    onClick={() => handleCheckPhoneResponse(msg.id, true)}
+                                    className="flex-1 py-1.5 bg-blue-500 text-white text-[13px] rounded-lg active:bg-blue-600"
+                                  >
+                                    允许
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="text-[12px] text-neutral-400 border-t border-neutral-100 pt-2 text-center">
+                                  {msg.checkPhoneStatus === 'accepted' ? '已允许' : '已拒绝'}
+                                </div>
+                              )}
                             </div>
                           )}
                         </>
