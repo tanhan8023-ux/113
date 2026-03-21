@@ -57,6 +57,7 @@ async function callAi(params: {
   messages: { role: string; content: any }[];
   temperature?: number;
   aiRef?: any;
+  signal?: AbortSignal;
 }) {
   if (params.apiUrl) {
     let endpoint = params.apiUrl;
@@ -83,7 +84,8 @@ async function callAi(params: {
         messages,
         temperature: params.temperature,
         stream: false
-      })
+      }),
+      signal: params.signal
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -103,7 +105,8 @@ async function callAi(params: {
         return { text: typeof c === 'string' ? c : JSON.stringify(c) };
       }) : [{ text: m.content }]
     }));
-    const response = await ai.models.generateContent({
+    
+    const genAiPromise = ai.models.generateContent({
       model: params.model,
       contents,
       config: {
@@ -111,6 +114,20 @@ async function callAi(params: {
         temperature: params.temperature,
       }
     });
+    
+    if (params.signal) {
+      return new Promise((resolve, reject) => {
+        if (params.signal?.aborted) {
+          return reject(new DOMException('Aborted', 'AbortError'));
+        }
+        params.signal?.addEventListener('abort', () => {
+          reject(new DOMException('Aborted', 'AbortError'));
+        });
+        genAiPromise.then(resolve).catch(reject);
+      }).then((response: any) => response.text || "");
+    }
+    
+    const response = await genAiPromise;
     return response.text || "";
   }
 }
@@ -311,7 +328,8 @@ export async function fetchAiResponse(
   imageUrl?: string,
   tools?: any[],
   isSystemTask: boolean = false,
-  disableActions: boolean = false
+  disableActions: boolean = false,
+  signal?: AbortSignal
 ) {
   const effectiveApiSettings = { ...apiSettings, ...customApiSettings };
   const apiKey = effectiveApiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY;
@@ -369,13 +387,16 @@ export async function fetchAiResponse(
       systemInstruction: fullSystemInstruction,
       messages,
       temperature: effectiveApiSettings.temperature,
-      aiRef
+      aiRef,
+      signal
     });
 
     if (!isSystemTask) await extractAndSaveMemory(promptText, text, aiRef, effectiveApiSettings);
     return { responseText: processAiResponse(text, persona.name), imageDescription };
   } catch (error: any) {
-    console.error("AI Response Error:", error);
+    if (error.name !== 'AbortError') {
+      console.error("AI Response Error:", error);
+    }
     throw error;
   }
 }

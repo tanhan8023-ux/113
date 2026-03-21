@@ -1579,6 +1579,7 @@ export default function App() {
   };
 
   const aiResponseTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
+  const aiAbortControllers = useRef<Record<string, AbortController>>({});
   const pendingAiCallbacks = useRef<Record<string, () => void>>({});
   const pendingRequests = useRef<Record<string, number>>({});
 
@@ -1622,6 +1623,13 @@ export default function App() {
     if (aiResponseTimeouts.current[personaId]) {
       clearTimeout(aiResponseTimeouts.current[personaId]);
     }
+    
+    // Abort existing fetch request for this persona
+    if (aiAbortControllers.current[personaId]) {
+      aiAbortControllers.current[personaId].abort();
+    }
+    aiAbortControllers.current[personaId] = new AbortController();
+    const currentAbortSignal = aiAbortControllers.current[personaId].signal;
 
     pendingRequests.current[personaId] = (pendingRequests.current[personaId] || 0) + 1;
     setTypingPersonas(prev => ({ ...prev, [personaId]: true }));
@@ -1630,9 +1638,11 @@ export default function App() {
       delete pendingAiCallbacks.current[personaId];
       const currentTimeoutId = aiResponseTimeouts.current[personaId];
       try {
-        // Wait until the user finishes typing
-        while ((window as any).isUserTyping && !document.hidden) {
+        // Wait until the user finishes typing, max 10 seconds
+        let waitTime = 0;
+        while ((window as any).isUserTyping && !document.hidden && waitTime < 10000) {
           await new Promise(resolve => setTimeout(resolve, 500));
+          waitTime += 500;
           // If a new request was triggered while waiting, abort this one
           if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
             return;
@@ -1750,8 +1760,17 @@ export default function App() {
           undefined,
           undefined,
           targetPersona.isOffline,
-          currentImageUrl
+          currentImageUrl,
+          undefined,
+          false,
+          false,
+          currentAbortSignal
         );
+
+        // If a new request was triggered while fetching, abort this one
+        if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
+          return;
+        }
 
         if (msgType === 'image' && imageDescription) {
           setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, imageDescription } : m));
@@ -1766,11 +1785,23 @@ export default function App() {
         }
 
         for (let i = 0; i < processed.parts.length; i++) {
+          // If a new request was triggered, stop typing the rest of the response
+          if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
+            console.log('AI response typing aborted due to new message');
+            return;
+          }
+
           const part = processed.parts[i];
           const typingDelay = Math.min((part.text || '...').length * 50, 1500) + Math.random() * 500;
           setTypingPersonas(prev => ({ ...prev, [personaId]: true }));
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
+          // Check again after the delay
+          if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
+            console.log('AI response typing aborted due to new message');
+            return;
+          }
+
           const aiMsg: Message = { 
             id: generateId(), 
             personaId: personaId,
@@ -1813,6 +1844,10 @@ export default function App() {
           .catch(() => {});
 
       } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.log('AI response aborted due to new message');
+          return;
+        }
         console.error("AI Response Error:", error);
         const errorMsg: Message = {
           id: generateId(),
