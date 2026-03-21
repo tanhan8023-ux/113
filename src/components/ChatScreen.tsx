@@ -1065,7 +1065,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         const { content, imageUrl } = await generateMoment(randomPersona, apiSettings, worldbook);
         if (content || imageUrl) {
           const newMoment: Moment = {
-            id: Date.now().toString(),
+            id: generateId(),
             authorId: randomPersona.id,
             text: content,
             imageUrl: imageUrl,
@@ -1128,7 +1128,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     
     // Add system message
     const systemMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: currentChatId!,
       role: 'model', // Or 'system' if supported, but model is fine for display usually
       text: `[${callType}结束，时长 ${durationText}]`,
@@ -1330,7 +1330,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
               await new Promise(resolve => setTimeout(resolve, typingDelay));
               
               const aiMsg: Message = { 
-                id: (Date.now() + Math.random()).toString(), 
+                id: generateId(), 
                 personaId: currentChatId,
                 role: 'model', 
                 text: part.text || '',
@@ -1380,7 +1380,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     if (!newStickerName.trim() || !newStickerUrl.trim()) return;
     
     const newSticker = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: newStickerName.trim(),
       url: newStickerUrl.trim()
     };
@@ -1404,7 +1404,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
         const newSticker = {
-          id: Date.now().toString() + Math.random(),
+          id: generateId(),
           name: file.name.split('.')[0],
           url: base64
         };
@@ -1663,7 +1663,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     const now = new Date();
     const timestamp = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
     const userMsg: Message = { 
-      id: Date.now().toString(), 
+      id: generateId(), 
       personaId: currentChatId || '',
       groupId: currentGroupId || undefined,
       role: 'user', 
@@ -1923,7 +1923,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
           const aiMsg: Message = { 
-            id: (Date.now() + Math.random()).toString(), 
+            id: generateId(), 
             personaId: currentPersona.id,
             role: 'model', 
             text: part.text || '',
@@ -1956,13 +1956,13 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           });
           
           if (part.msgType === 'checkPhoneRequest') {
-            setAiPhoneRequest({ msgId: aiMsg.id, personaId: currentPersona.id });
+            // No longer using the request modal, handled automatically in App.tsx
           }
 
           // Record transaction for AI transfer (only if it's a refund, otherwise it's pending)
           if (part.msgType === 'transfer' && part.amount && part.isRefund) {
             const newTx: Transaction = {
-              id: Date.now().toString() + '-ai',
+              id: generateId(),
               type: 'red_packet',
               amount: part.amount,
               description: `${currentPersona.name} 的退款`,
@@ -2006,7 +2006,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                     await new Promise(resolve => setTimeout(resolve, typingDelay));
                     
                     const newAiMsg: Message = { 
-                      id: (Date.now() + Math.random()).toString(), 
+                      id: generateId(), 
                       personaId: currentPersona.id,
                       role: 'model', 
                       text: partText,
@@ -2045,7 +2045,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         if (error?.message?.includes('频率限制') || error?.message?.includes('429')) {
           console.warn("Chat rate limited.");
           setMessages(prev => [...prev, { 
-            id: Date.now().toString(), 
+            id: generateId(), 
             personaId: currentPersona.id, 
             role: 'model', 
             text: "(太快啦，让我歇会儿~ 频率限制中)", 
@@ -2064,7 +2064,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
             errorMsg = "API Key 无效，请在设置中检查您的 API Key 是否正确。";
           }
           setMessages(prev => [...prev, { 
-            id: Date.now().toString(), 
+            id: generateId(), 
             personaId: currentPersona.id, 
             role: 'model', 
             text: errorMsg, 
@@ -2144,7 +2144,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         for (let i = 0; i < finalParts.length; i++) {
           const part = finalParts[i];
           const aiMsg: Message = { 
-            id: (Date.now() + i + 1).toString(), 
+            id: generateId(), 
             personaId: currentPersona.id,
             role: 'model', 
             text: part.text || '',
@@ -2217,7 +2217,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     }
 
     const sysMsg: Message = {
-      id: Date.now().toString(),
+      id: generateId(),
       personaId: currentPersona.id,
       role: 'user', // We use user role for alignment, but msgType system will center it
       text: patText,
@@ -2268,7 +2268,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           await new Promise(resolve => setTimeout(resolve, typingDelay));
           
           const aiMsg: Message = { 
-            id: (Date.now() + Math.random()).toString(), 
+            id: generateId(), 
             personaId: currentPersona.id,
             role: 'model', 
             text: partText,
@@ -2456,7 +2456,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         await new Promise(resolve => setTimeout(resolve, typingDelay));
         
         const aiMsg: Message = { 
-          id: (Date.now() + Math.random()).toString(), 
+          id: generateId(), 
           personaId: currentPersona.id,
           role: 'model', 
           text: part.text || '',
@@ -2502,7 +2502,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
       } else if (errorStr.includes('API key not valid') || errorStr.includes('API_KEY_INVALID') || errorStr.includes('400')) {
         errorMsg = "API Key 无效，请在设置中检查您的 API Key 是否正确。";
       }
-      setMessages(prev => [...prev, { id: Date.now().toString(), personaId: currentPersona.id, role: 'model', text: errorMsg, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), isRead: true }]);
+      setMessages(prev => [...prev, { id: generateId(), personaId: currentPersona.id, role: 'model', text: errorMsg, timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), isRead: true }]);
     } finally {
       pendingRequests.current = Math.max(0, pendingRequests.current - 1);
       setIsLoading(false);
@@ -2565,7 +2565,7 @@ ${recentMessages}
       }
 
       const newTransaction: Transaction = {
-        id: Date.now().toString(),
+        id: generateId(),
         type: 'transfer',
         amount: amount,
         description: `转账给${currentPersona?.name || '朋友'}${transferNote ? ` (${transferNote})` : ''}`,
@@ -2674,7 +2674,7 @@ ${recentMessages}
   const handleAddFriend = () => {
     if (!newFriendName.trim()) return;
     const newPersona: Persona = {
-      id: Date.now().toString(),
+      id: generateId(),
       name: newFriendName.trim(),
       instructions: newFriendPrompt.trim() || '你是一个新朋友。',
     };
@@ -2727,7 +2727,7 @@ ${recentMessages}
     if (!targetMoment) return;
 
     const newComment: Comment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: commentInput.trim(),
       timestamp: '刚刚',
@@ -2759,7 +2759,7 @@ ${recentMessages}
         const responseText = aiResponse.responseText;
         
         const aiReply: Comment = {
-          id: (Date.now() + 1).toString(),
+          id: generateId(),
           authorId: authorPersona.id,
           text: responseText,
           timestamp: '刚刚',
@@ -2791,7 +2791,7 @@ ${recentMessages}
     if (!newMomentText.trim() || isAiProcessingMoment) return;
 
     const newMoment: Moment = {
-      id: Date.now().toString(),
+      id: generateId(),
       authorId: 'user',
       text: newMomentText.trim(),
       timestamp: '刚刚',
@@ -2824,7 +2824,7 @@ ${recentMessages}
           ));
         } else if (!aiAction.includes('IGNORE') && aiAction.length > 0) {
           const aiComment: Comment = {
-            id: Date.now().toString() + Math.random(),
+            id: generateId(),
             authorId: persona.id,
             text: aiAction,
             timestamp: '刚刚',
@@ -3735,36 +3735,11 @@ ${recentMessages}
                           )}
 
                           {msg.msgType === 'checkPhoneRequest' && (
-                            <div className={`flex flex-col gap-2 rounded-xl p-3 w-64 bg-white border border-neutral-200 text-neutral-800 shadow-sm custom-bubble-ai`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                                  <Smartphone size={16} />
-                                </div>
-                                <div className="text-[14px] font-medium flex-1">请求查看手机</div>
+                            <div className="flex justify-center my-2">
+                              <div className="bg-neutral-100 text-neutral-400 text-[11px] px-3 py-1 rounded-full flex items-center gap-1.5">
+                                <Smartphone size={12} />
+                                <span>{currentPersona?.name} 正在查看你的手机...</span>
                               </div>
-                              <div className="text-[13px] text-neutral-600 mb-2">
-                                {currentPersona?.name} 想要查看你的手机内容。
-                              </div>
-                              {msg.checkPhoneStatus === 'pending' ? (
-                                <div className="flex gap-2 border-t border-neutral-100 pt-2">
-                                  <button 
-                                    onClick={() => handleCheckPhoneResponse(msg.id, false)}
-                                    className="flex-1 py-1.5 bg-neutral-100 text-neutral-600 text-[13px] rounded-lg active:bg-neutral-200"
-                                  >
-                                    拒绝
-                                  </button>
-                                  <button 
-                                    onClick={() => handleCheckPhoneResponse(msg.id, true)}
-                                    className="flex-1 py-1.5 bg-blue-500 text-white text-[13px] rounded-lg active:bg-blue-600"
-                                  >
-                                    允许
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="text-[12px] text-neutral-400 border-t border-neutral-100 pt-2 text-center">
-                                  {msg.checkPhoneStatus === 'accepted' ? '已允许' : '已拒绝'}
-                                </div>
-                              )}
                             </div>
                           )}
                         </>
@@ -5990,7 +5965,7 @@ ${recentMessages}
                         onClick={() => {
                           // Accept transfer
                           const newTx: Transaction = {
-                            id: Date.now().toString() + '-ai-accept',
+                            id: generateId(),
                             type: 'red_packet',
                             amount: selectedTransferMsg.amount!,
                             description: `${currentPersona?.name || '对方'} 的转账`,
@@ -6005,7 +5980,7 @@ ${recentMessages}
                           
                           // Send a system message or user message to acknowledge
                           const acceptMsg: Message = {
-                            id: Date.now().toString(),
+                            id: generateId(),
                             personaId: currentPersona?.id || '',
                             role: 'user',
                             text: "",
@@ -6031,7 +6006,7 @@ ${recentMessages}
                           setMessages(prev => prev.map(m => m.id === selectedTransferMsg.id ? { ...m, transferStatus: 'rejected' } : m));
                           
                           const rejectMsg: Message = {
-                            id: Date.now().toString(),
+                            id: generateId(),
                             personaId: currentPersona?.id || '',
                             role: 'user',
                             text: "",
@@ -6071,7 +6046,7 @@ ${recentMessages}
                           
                           // Deduct balance
                           const newTx: Transaction = {
-                            id: Date.now().toString() + '-pay-request',
+                            id: generateId(),
                             type: 'red_packet',
                             amount: -(selectedTransferMsg.amount!),
                             description: `支付 ${currentPersona?.name || '对方'} 的收款请求`,
@@ -6244,7 +6219,7 @@ ${recentMessages}
           worldbook={worldbook}
           onSendMessageAsAi={(text) => {
             const aiMsg: Message = {
-              id: Date.now().toString(),
+              id: generateId(),
               personaId: currentPersona.id,
               role: 'model',
               text,
@@ -6343,7 +6318,7 @@ ${recentMessages}
             transactions={userProfile.transactions || []}
             onRecharge={(amount) => {
               const newTransaction: Transaction = {
-                id: Date.now().toString(),
+                id: generateId(),
                 amount,
                 type: 'top_up',
                 description: '充值',

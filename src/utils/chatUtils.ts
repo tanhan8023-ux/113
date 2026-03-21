@@ -118,6 +118,7 @@ export const processAiResponseParts = (responseText: string | { responseText: st
     quotedMessageId: currentQuotedId,
     orderItems,
     shouldRecall,
+    checkPhoneRequest: processedParts.some(p => p.msgType === 'checkPhoneRequest'),
     nextTag
   };
 };

@@ -1683,14 +1683,35 @@ export default function App() {
         const customStickerNames = userProfile.stickers?.map(s => s.name) || [];
         const allStickers = [...defaultStickers, ...customStickerNames].join(', ');
 
+        const isCheckingPhoneUserTrigger = /查我手机|查岗|看我手机|查手机/.test(text) && msgType === 'text';
+        
         let promptText = msgType === 'transfer' ? `[系统提示：用户向你转账了 ${amount} 元${transferNote ? `，备注是：“${transferNote}”` : ''}。你可以选择收下并回复，或者如果你想退还，请在回复中包含 [REFUND: 金额, 备注]。如果你想主动发起收款，请包含 [REQUEST: 金额, 备注]。如果你想主动转账给用户，请包含 [TRANSFER: 金额, 备注]。请作出符合你人设的反应]` : 
                            msgType === 'relativeCard' ? `[系统提示：用户赠送了你一张亲属卡，额度为 ${relativeCard?.limit} 元。请作出符合你人设的反应。]` :
                            msgType === 'sticker' ? `[系统提示：用户发送了一个表情包。你可以选择回复文字，或者如果你也想发表情包，请包含 [STICKER: 表情名称]（可用表情：${allStickers}）。请作出符合你人设的反应。]` :
                            msgType === 'listenTogether' ? `[系统提示：用户邀请你“一起听歌”。请表现出开心和期待，可以问问用户想听什么，或者推荐一首你喜欢的歌。]` :
                            msgType === 'image' ? `[视觉感知：用户发送了一张图片。请仔细观察图片中的每一个细节（包括主体、背景、人物表情、物品、文字等），然后以你的人设身份给出最自然、最感性的即时反应。不要像AI一样描述图片，要像真正的朋友看到照片后直接评论。如果图片内容与你之前说的话有矛盾，请以图片为准。]` :
+                           isCheckingPhoneUserTrigger ? `[系统提示：用户主动要求你查看TA的手机（查岗）。请开始执行查岗流程。]` :
                            text.trim();
         
         let additionalSystemInstructions = "【重要提示】如果用户连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。";
+
+        // Add phone checking instructions if triggered
+        if (isCheckingPhoneUserTrigger || text.includes('[系统提示：用户允许了你查看TA的手机。]')) {
+          const recentMsgs = messages.slice(-10).map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.text}`).join('\n');
+          additionalSystemInstructions += `\n\n【沉浸感查岗规则 - 必读】
+1. 你现在正在“看”用户的手机。你可以自由发挥，合理“虚构”你在TA手机里看到的内容（例如：和其他人的聊天记录、搜索记录、相册照片、外卖订单等），以此来和用户进行沉浸式的互动或“找茬”。
+2. ⚠️ 绝对禁止虚构不存在的App！只能提及现实中真实存在且常用的App（如：微信、抖音、淘宝、美团、小红书等），或者使用通用词汇（如：相册、浏览器、备忘录）。
+3. ⚠️ 绝对禁止虚构与“你（AI自己）”相关的、且没有在聊天记录中真实发生过的事情！例如：绝对不要说“我看到你给我买了礼物/给我转了账”，除非用户在聊天中真的这么做了。这种虚假的互动会严重破坏沉浸感。
+4. 如果你要“找茬”，请找一些生活化的、有代入感的细节。例如：
+   - “这个叫‘小美’的人是谁？你们为什么聊到半夜？”
+   - “你相册里怎么存了这么多奇怪的表情包？”
+   - “你给我的微信备注怎么连个爱心都没有？”
+   - “你刚才明明在玩手机（屏幕使用时间显示），为什么回我消息那么慢？”
+5. 请务必使用 [ACTION:IMAGE:描述] 标签生成一张你看到的手机屏幕截图（例如：[ACTION:IMAGE:一张手机屏幕截图，显示着用户和一个叫小美的女生的微信聊天记录]），然后把截图发给用户并直接质问或评论。
+6. 如果你觉得没问题，也可以乖乖把手机还给用户，并根据你的人设撒娇或表达满意。
+当前上下文记录：
+${recentMsgs}`;
+        }
         if (theaterId) {
           const script = [
             { title: '初次相遇', desc: '在雨后的咖啡馆，你们第一次擦肩而过...' },
@@ -1834,6 +1855,18 @@ export default function App() {
             theaterId
           };
           setMessages(prev => [...prev, aiMsg]);
+        }
+
+        if (processed.checkPhoneRequest) {
+          // Automatic roleplay for phone checking
+          setTimeout(() => {
+            triggerAiResponse({
+              personaId,
+              text: "[系统提示：用户允许了你查看TA的手机。请开始查岗。]",
+              msgType: 'system',
+              userMsgId: generateId()
+            });
+          }, 1000);
         }
 
         if (processed.shouldRecall) {
@@ -3058,51 +3091,6 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* AI Phone Request Modal */}
-      <AnimatePresence>
-        {aiPhoneRequest && (
-          <div className="absolute inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-6">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center space-y-6"
-            >
-              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                <PhoneIcon className="w-10 h-10 text-blue-500" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-neutral-900">{personas.find(p => p.id === aiPhoneRequest.personaId)?.name || 'AI'} 请求查看手机</h3>
-                <p className="text-neutral-500 text-sm">{personas.find(p => p.id === aiPhoneRequest.personaId)?.name || 'AI'} 想要查看您的手机内容，是否允许？</p>
-              </div>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => {
-                    if (phoneResponseHandler && aiPhoneRequest) {
-                      phoneResponseHandler(aiPhoneRequest.msgId, false);
-                    }
-                    setAiPhoneRequest(null);
-                  }}
-                  className="flex-1 py-3 rounded-full bg-neutral-100 text-neutral-700 font-bold"
-                >
-                  拒绝
-                </button>
-                <button 
-                  onClick={() => {
-                    if (phoneResponseHandler && aiPhoneRequest) {
-                      phoneResponseHandler(aiPhoneRequest.msgId, true);
-                    }
-                    setAiPhoneRequest(null);
-                  }}
-                  className="flex-1 py-3 rounded-full bg-blue-500 text-white font-bold"
-                >
-                  允许
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </Phone>
   );
 }

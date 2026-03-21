@@ -133,7 +133,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
     for (let i = 0; i < commentCount; i++) {
       newComments.push({
         id: generateId(),
-        authorId: 'th_npc_' + Date.now() + '_c_' + i,
+        authorId: 'th_npc_' + generateId() + '_c_' + i,
         authorName: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)],
         authorAvatar: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
         text: RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)],
@@ -144,7 +144,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
 
     const newPost: TreeHolePost = {
       id: generateId(),
-      authorId: 'th_npc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      authorId: 'th_npc_' + generateId(),
       authorName: RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)],
       authorAvatar: RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)],
       authorPersona: personaTraits,
@@ -214,7 +214,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
       setTimeout(async () => {
         const npcName = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)];
         const npcAvatar = RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)];
-        const npcId = 'th_npc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const npcId = 'th_npc_' + generateId();
         
         // Randomly decide between like or comment (30% comment, 70% like)
         const isComment = Math.random() > 0.7;
@@ -559,7 +559,7 @@ export function TreeHoleScreen({ userProfile, personas, posts, setPosts, notific
              const name = contactMatch[1].trim();
              const intro = contactMatch[2]?.trim() || '一位新朋友';
              const avatar = RANDOM_AVATARS[Math.floor(Math.random() * RANDOM_AVATARS.length)];
-             const contactId = 'th_contact_' + Date.now();
+             const contactId = 'th_contact_' + generateId();
 
              contactMsg = {
                id: generateId(),
