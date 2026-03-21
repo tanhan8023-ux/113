@@ -570,6 +570,12 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     // Mark this message as evaluated so we don't re-trigger on other state changes
     lastEvaluatedGroupMsgId.current = lastMsg.id;
 
+    if (groupChatAbortControllerRef.current) {
+      groupChatAbortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    groupChatAbortControllerRef.current = abortController;
+
     // Wait a very short amount of time (0.5-1.5 seconds) before deciding to reply
     const timer = setTimeout(async () => {
       const currentMessages = messagesRef.current;
@@ -648,7 +654,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
 
         try {
           // Use a fast model for this check
-          const response = await fetchAiResponse(prompt, contextMessages, persona, apiSettings, worldbook, userProfile, aiRef, true, "", apiSettings.apiUrl ? undefined : "gemini-3-flash-preview", undefined, false, undefined, undefined, false, true);
+          const response = await fetchAiResponse(prompt, contextMessages, persona, apiSettings, worldbook, userProfile, aiRef, true, "", apiSettings.apiUrl ? undefined : "gemini-3-flash-preview", undefined, false, undefined, abortController.signal, false, true);
           
           // Check if another message was sent while we were generating
           const latestMsg = messagesRef.current[messagesRef.current.length - 1];
@@ -667,7 +673,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
           if (!isUnread) {
             // Mark message as read by this persona if they didn't explicitly choose [UNREAD]
             setMessages(prev => prev.map(m => {
-              if (m.groupId === currentGroupId && (m.id === lastMsg.id || (m.createdAt || 0) <= (lastMsg.createdAt || 0))) {
+              if (m.groupId === currentGroupId && (m.id === latestMsg.id || (m.createdAt || 0) <= (latestMsg.createdAt || 0))) {
                 if (!m.readBy?.includes(persona.id)) {
                   return { ...m, readBy: Array.from(new Set([...(m.readBy || []), persona.id])) };
                 }
@@ -733,7 +739,11 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
               }
             }
           }
-        } catch (e) {
+        } catch (e: any) {
+          if (e.name === 'AbortError') {
+            console.log(`Group spontaneous reply aborted for ${persona.name}`);
+            break; // Stop processing other members if aborted
+          }
           console.error("Group spontaneous reply error:", e);
         }
       }
@@ -986,6 +996,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
   const [isVoiceChatActive, setIsVoiceChatActive] = useState(false);
   const lastAutonomousPostTime = useRef<number>(0);
   const lastEvaluatedGroupMsgId = useRef<string | null>(null);
+  const groupChatAbortControllerRef = useRef<AbortController | null>(null);
 
   // Autonomous posting logic
   useEffect(() => {
