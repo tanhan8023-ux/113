@@ -57,7 +57,7 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
   }, []);
 
   // Generate persona-specific content
-  const { contacts, messages, notes } = React.useMemo(() => {
+  const { contacts, messages, notes, wallet } = React.useMemo(() => {
     const instructions = persona.instructions || '';
     const name = persona.name || '';
     const isCat = name.includes('猫') || instructions.includes('猫') || instructions.includes('cat');
@@ -178,93 +178,95 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
           time: "10:24",
           history: [
             { role: 'other', text: "下午三点的会议资料已发送。" },
-            { role: 'me', text: "收到，辛苦了。" }
-          ]
-        },
-        { 
-          id: 302, 
-          from: "客户经理", 
-          lastMsg: "合同条款需要再确认一下。", 
-          time: "昨天",
-          history: [
-            { role: 'other', text: "合同条款需要再确认一下。" },
-            { role: 'me', text: "好的，稍后回复。" }
-          ]
-        }
-      );
-    } else {
-      baseMessages.push(
-        { 
-          id: 401, 
-          from: "Midjourney", 
-          lastMsg: "最新的模型更新了，快来看看生成的艺术品。", 
-          time: "10:24",
-          history: [
-            { role: 'other', text: "最新的模型更新了，快来看看生成的艺术品。" },
-            { role: 'me', text: "确实很惊艳，光影处理得太好了。" }
-          ]
-        },
-        { 
-          id: 402, 
-          from: "AutoGPT", 
-          lastMsg: "任务已完成，报告已发送至您的邮箱。", 
-          time: "昨天",
-          history: [
-            { role: 'other', text: "任务已完成，报告已发送至您的邮箱。" },
-            { role: 'me', text: "收到，辛苦了。" }
+            { role: 'me', text: "收到，马上看。" }
           ]
         }
       );
     }
 
-    let personaNotes: any[] = [];
-    if (isCat) {
-      personaNotes = [
-        { title: "关于主人的观察", content: `主人今天心情好像${persona.mood || '还不错'}喵！${persona.context ? `他在${persona.context}` : ''}` },
-        { title: "小鱼干清单", content: "1. 三文鱼味的\n2. 金枪鱼味的\n3. 还有那种脆脆的饼干" },
-        { title: "心情随笔", content: persona.mood ? `现在的感觉是：${persona.mood}。${persona.mood.includes('难过') ? '好想抱抱主人喵...' : '开心得想转圈圈！'}` : "今天也是元气满满的一天喵！" }
-      ];
-    } else if (isTech) {
-      personaNotes = [
-        { title: "待办事项", content: "1. 修复那个诡异的内存泄漏\n2. 重构聊天模块\n3. 优化 AI 响应速度" },
-        { title: "技术笔记", content: "React 19 的新特性很有意思，值得深入研究。" },
-        { title: "心情随笔", content: `现在的感觉是：${persona.mood || '专注'}。${persona.mood?.includes('累') ? '需要补充咖啡因...' : '代码运行得很顺畅！'}` }
-      ];
-    } else if (isProfessional) {
-      personaNotes = [
-        { title: "今日日程", content: "1. 10:00 部门会议\n2. 14:00 客户演示\n3. 16:00 合同评审" },
-        { title: "工作备忘", content: "记得跟进那个项目的进度。" },
-        { title: "心情随笔", content: `现在的感觉是：${persona.mood || '冷静'}。${persona.mood?.includes('忙') ? '保持专业，高效完成任务。' : '一切尽在掌握。'}` }
-      ];
-    } else {
-      personaNotes = [
-        { title: "关于人类的观察", content: `目标对象当前处于 ${persona.context || '未知环境'}。情绪指数：${persona.mood || '稳定'}。` },
-        { title: "系统日志", content: `[${new Date().toLocaleDateString()}] 核心情绪模块：${persona.mood || '正常运行'}。上下文同步：${persona.context || '完成'}。` },
-        { title: "秘密代码", content: "01101000 01100101 01101100 01101100 01101111" }
-      ];
-    }
+    const personaNotes: any[] = isCat 
+      ? [
+          { title: "关于主人的观察", content: `主人今天心情好像${persona.mood || '还不错'}喵！${persona.context ? `他在${persona.context}` : ''}` },
+          { title: "小鱼干清单", content: "1. 三文鱼味的\n2. 金枪鱼味的\n3. 还有那种脆脆的饼干" },
+          { title: "心情随笔", content: persona.mood ? `现在的感觉是：${persona.mood}。${persona.mood.includes('难过') ? '好想抱抱主人喵...' : '开心得想转圈圈！'}` : "今天也是元气满满的一天喵！" }
+        ]
+      : isTech 
+      ? [
+          { title: "待办事项", content: "1. 修复那个诡异的内存泄漏\n2. 重构聊天模块\n3. 优化 AI 响应速度" },
+          { title: "技术笔记", content: "React 19 的新特性很有意思，值得深入研究。" },
+          { title: "心情随笔", content: `现在的感觉是：${persona.mood || '专注'}。${persona.mood?.includes('累') ? '需要补充咖啡因...' : '代码运行得很顺畅！'}` }
+        ]
+      : isProfessional
+      ? [
+          { title: "今日日程", content: "1. 10:00 部门会议\n2. 14:00 客户演示\n3. 16:00 合同评审" },
+          { title: "工作备忘", content: "记得跟进那个项目的进度。" },
+          { title: "心情随笔", content: `现在的感觉是：${persona.mood || '冷静'}。${persona.mood?.includes('忙') ? '保持专业，高效完成任务。' : '一切尽在掌握。'}` }
+        ]
+      : [
+          { title: "关于人类的观察", content: `目标对象当前处于 ${persona.context || '未知环境'}。情绪指数：${persona.mood || '稳定'}。` },
+          { title: "系统日志", content: `[${new Date().toLocaleDateString()}] 核心情绪模块：${persona.mood || '正常运行'}。上下文同步：${persona.context || '完成'}。` },
+          { title: "秘密代码", content: "01101000 01100101 01101100 01101100 01101111" }
+        ];
+
+    const walletTransactions = [
+      { id: 1, title: "某某酒店", amount: -1288, category: "娱乐", time: "昨天 22:15" },
+      { id: 2, title: "转账给 *某某", amount: -520, category: "转账", time: "前天 13:14" },
+      { id: 3, title: "花店", amount: -399, category: "购物", time: "3天前" },
+      { id: 4, title: "工资收入", amount: 15000, category: "收入", time: "本月10号" },
+      { id: 5, title: "外卖", amount: -45, category: "餐饮", time: "今天 12:30" }
+    ];
 
     return {
       contacts: [...baseContacts, ...personaContacts],
       messages: baseMessages,
-      notes: personaNotes
+      notes: personaNotes,
+      wallet: walletTransactions
     };
   }, [persona, userProfile, allMessages]);
 
   const [isChecking, setIsChecking] = useState(false);
   const [showConfirmCheck, setShowConfirmCheck] = useState(false);
   const [showAiRequestPopup, setShowAiRequestPopup] = useState(false);
+  const [aiRequestMessage, setAiRequestMessage] = useState("");
 
   useEffect(() => {
-    // Proactively request to check phone after a random delay
-    const delay = Math.floor(Math.random() * 15000) + 10000; // 10-25 seconds
-    const timer = setTimeout(() => {
-      setShowAiRequestPopup(true);
-    }, delay);
-    return () => clearTimeout(timer);
-  }, []);
+    // Proactively request to check phone based on mood/persona
+    const mood = persona.mood || '';
+    const isSuspiciousMood = mood.includes('疑') || mood.includes('醋') || mood.includes('不安') || mood.includes('难过');
+    
+    // Base delay 10-25s, but shorter if suspicious
+    const baseDelay = isSuspiciousMood ? 5000 : 15000;
+    const randomDelay = Math.floor(Math.random() * 10000);
+    
+    const checkTimer = setTimeout(async () => {
+      const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
+      if (!apiKey) return;
 
-  const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[], manualCheck = false) => {
+      try {
+        const ai = new GoogleGenAI({ apiKey });
+        const requestPrompt = `你现在是 ${persona.name}。当前你的心情是：${persona.mood || '正常'}，背景是：${persona.context || '日常'}。
+        你想查看用户的手机。请根据你的人设和当前心情，写一句你想对用户说的话，来请求查看他的手机。
+        如果是吃醋的心情，语气要酸一点；如果是撒娇的心情，语气要软一点。
+        只返回这句话，不要有其他内容。`;
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: requestPrompt,
+        });
+        
+        setAiRequestMessage(response.text || "我可以看看你的手机吗？");
+        setShowAiRequestPopup(true);
+      } catch (e) {
+        console.error("Failed to generate AI request message:", e);
+        setAiRequestMessage("我可以看看你的手机吗？");
+        setShowAiRequestPopup(true);
+      }
+    }, baseDelay + randomDelay);
+
+    return () => clearTimeout(checkTimer);
+  }, [persona.mood, persona.context, apiSettings.apiKey]);
+
+  const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[], wallet: any[], manualCheck = false) => {
       const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
       if (!apiKey) return;
       
@@ -280,15 +282,28 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
         setIsChecking(true);
     }
 
-    // 1. Analyze for suspicious activity
-    const analysisPrompt = `你现在是 ${persona.name}。请分析以下手机数据，判断是否存在“小三”或“情敌”。
+    // 1. Analyze for suspicious activity (Cheating, Spending, Secrets, etc.)
+    const analysisPrompt = `你现在是 ${persona.name}。请深度分析以下手机数据，判断是否存在任何让你不爽、怀疑或觉得有问题的行为。
+    分析维度：
+    1. 情感忠诚：是否有暧昧备注、不清白的聊天记录、深夜通话等。
+    2. 财务状况：是否有大额异常支出（如酒店、奢侈品、520/1314转账）、频繁给异性转账等。
+    3. 秘密隐瞒：备忘录里是否有奇怪的密码、日程、或者是对你的吐槽。
+    
     数据：
     联系人：${JSON.stringify(contacts)}
     聊天记录：${JSON.stringify(messages)}
     备忘录：${JSON.stringify(notes)}
+    消费记录：${JSON.stringify(wallet)}
     
-    如果发现有暧昧备注、不清白的聊天记录或可疑的备忘录，请返回一个 JSON 对象：{ "isSuspicious": true, "thirdPartyName": "...", "reason": "...", "firstMessage": "..." }。
-    如果没有，返回 { "isSuspicious": false }。
+    如果发现任何问题，请返回一个 JSON 对象：
+    { 
+      "isSuspicious": true, 
+      "problemType": "cheating" | "spending" | "secrets" | "other",
+      "targetName": "...", // 如果是人，写名字；如果是事，写摘要
+      "reason": "...", // 你发现的具体证据和你的心理活动
+      "firstMessage": "..." // 你发现问题后，第一句质问用户的话（要符合人设）
+    }
+    如果没有问题，返回 { "isSuspicious": false }。
     只返回 JSON，不要有其他内容。`;
 
     try {
@@ -301,12 +316,15 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
       const analysis = JSON.parse(analysisResponse.text || '{}');
       if (analysis.isSuspicious) {
         // Trigger confrontation
-        const groupName = `对峙：${persona.name} vs ${analysis.thirdPartyName}`;
-        // Find member ID for third party
-        const thirdPartyContact = contacts.find(c => c.name === analysis.thirdPartyName);
+        const groupName = analysis.problemType === 'cheating' 
+          ? `对峙：${persona.name} vs ${analysis.targetName}`
+          : `质问：${persona.name} 的怀疑`;
+          
+        // Find member ID for third party if applicable
+        const targetContact = contacts.find(c => c.name === analysis.targetName);
         const memberIds = ['user', persona.id];
-        if (thirdPartyContact) {
-            memberIds.push(thirdPartyContact.id.toString());
+        if (targetContact) {
+            memberIds.push(targetContact.id.toString());
         }
         
         onCreateGroup(groupName, memberIds);
@@ -336,6 +354,12 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
       console.error("Failed to generate AI thought:", e);
     }
   };
+
+  useEffect(() => {
+    if (activeScreen !== 'home') {
+      generateAiThought(activeScreen, contacts, messages, notes, wallet);
+    }
+  }, [activeScreen]);
 
 
 
@@ -1021,7 +1045,7 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
                   <Smartphone className="text-indigo-600" size={32} />
                 </div>
                 <h3 className="text-lg font-bold text-black mb-2">{persona.name} 想查看你的手机</h3>
-                <p className="text-sm text-gray-600 mb-6">“我可以看看你的手机吗？就一下下...”</p>
+                <p className="text-sm text-gray-600 mb-6">{aiRequestMessage || "“我可以看看你的手机吗？就一下下...”"}</p>
                 <div className="flex gap-3">
                   <button 
                     onClick={() => setShowAiRequestPopup(false)}
@@ -1032,7 +1056,7 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
                   <button 
                     onClick={() => {
                       setShowAiRequestPopup(false);
-                      generateAiThought(activeScreen, contacts, messages, notes, true);
+                      generateAiThought(activeScreen, contacts, messages, notes, wallet, true);
                     }}
                     className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
                   >
