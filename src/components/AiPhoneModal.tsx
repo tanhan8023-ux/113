@@ -230,13 +230,28 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
   const [aiRequestMessage, setAiRequestMessage] = useState("");
 
   useEffect(() => {
-    // Proactively request to check phone based on mood/persona
+    // 1. Check if the AI recently asked to check the phone in the chat
+    const lastAiMessage = [...allMessages]
+      .reverse()
+      .find(m => m.personaId === persona.id && !m.groupId && !m.theaterId && !m.hidden);
+    
+    const aiAskedRecently = lastAiMessage && 
+      (lastAiMessage.text.includes('手机') || lastAiMessage.text.includes('查')) &&
+      (Date.now() - new Date(lastAiMessage.createdAt || Date.now()).getTime() < 60000); // within last minute
+
+    if (aiAskedRecently) {
+      setAiRequestMessage(lastAiMessage.text);
+      setShowAiRequestPopup(true);
+      return; // Don't start the proactive timer if it already asked
+    }
+
+    // 2. Proactively request to check phone based on mood/persona
     const mood = persona.mood || '';
     const isSuspiciousMood = mood.includes('疑') || mood.includes('醋') || mood.includes('不安') || mood.includes('难过');
     
-    // Base delay 10-25s, but shorter if suspicious
-    const baseDelay = isSuspiciousMood ? 5000 : 15000;
-    const randomDelay = Math.floor(Math.random() * 10000);
+    // Base delay 3-8s, much shorter for better responsiveness
+    const baseDelay = isSuspiciousMood ? 2000 : 5000;
+    const randomDelay = Math.floor(Math.random() * 5000);
     
     const checkTimer = setTimeout(async () => {
       const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
@@ -264,7 +279,7 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
     }, baseDelay + randomDelay);
 
     return () => clearTimeout(checkTimer);
-  }, [persona.mood, persona.context, apiSettings.apiKey]);
+  }, [persona.mood, persona.context, apiSettings.apiKey, allMessages.length]);
 
   const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[], wallet: any[], manualCheck = false) => {
       const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
@@ -856,6 +871,39 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
             </div>
             <ChevronLeft size={18} className="text-gray-300 rotate-180" />
           </button>
+          
+          <div className="p-4 mt-4">
+            <button 
+              onClick={async () => {
+                const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
+                if (!apiKey) return;
+                setIsChecking(true);
+                try {
+                  const ai = new GoogleGenAI({ apiKey });
+                  const requestPrompt = `你现在是 ${persona.name}。用户主动请求你检查他的手机。请根据你的人设和当前心情，写一句你想对用户说的话。只返回这句话。`;
+                  const response = await ai.models.generateContent({
+                    model: 'gemini-3-flash-preview',
+                    contents: requestPrompt,
+                  });
+                  setAiRequestMessage(response.text || "既然你主动要求，那我就看看吧...");
+                  setShowAiRequestPopup(true);
+                } catch (e) {
+                  console.error(e);
+                  setShowAiRequestPopup(true);
+                } finally {
+                  setIsChecking(false);
+                }
+              }}
+              className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 active:scale-95 transition-transform flex items-center justify-center gap-2"
+            >
+              <Search size={20} />
+              请求 AI 深度检查
+            </button>
+            <p className="text-[10px] text-gray-400 mt-2 text-center">
+              AI 也会根据心情和聊天内容随机主动发起检查
+            </p>
+          </div>
+
           {[
             { icon: <Cpu className="text-white" />, label: "处理器负载", value: "0.002%", color: "bg-blue-500" },
             { icon: <HardDrive className="text-white" />, label: "存储空间", value: "8.4 PB", color: "bg-gray-500" },
