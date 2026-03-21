@@ -2414,11 +2414,26 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
   }, [handleSend]);
 
   const handleCheckPhoneResponse = useCallback((msgId: string, accept: boolean) => {
-    setMessages(prev => prev.map(m => 
-      m.id === msgId ? { ...m, checkPhoneStatus: accept ? 'accepted' : 'rejected' } : m
-    ));
+    if (msgId !== 'proactive') {
+      setMessages(prev => prev.map(m => 
+        m.id === msgId ? { ...m, checkPhoneStatus: accept ? 'accepted' : 'rejected' } : m
+      ));
+    } else if (accept) {
+      // Proactive case: add a system message
+      const userMsg: Message = {
+        id: generateId(),
+        personaId: currentPersona?.id || '',
+        role: 'user',
+        text: '[我主动把手机递给了你，让你查看内容]',
+        msgType: 'system',
+        timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        isRead: true,
+        createdAt: Date.now()
+      };
+      setMessages(prev => [...prev, userMsg]);
+    }
     
-    if (accept) {
+    if (accept && currentPersona) {
       // Create a summary of recent messages to provide context
       const recentMessages = messagesRef.current.slice(-10).map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.text}`).join('\n');
       
@@ -2442,7 +2457,7 @@ ${recentMessages}
     } else {
       handleSendRef.current("[系统提示：用户拒绝了你查看TA手机的请求。请根据你的人设作出反应（例如：生气、怀疑、撒娇等）。]", 'system', undefined, undefined, undefined, undefined, undefined, undefined, true);
     }
-  }, []);
+  }, [currentPersona]);
 
   useEffect(() => {
     setPhoneResponseHandler(() => handleCheckPhoneResponse);
@@ -3970,6 +3985,19 @@ ${recentMessages}
                 </div>
                 <span className="text-[12px] text-neutral-500">位置</span>
               </button>
+              <button 
+                onClick={() => {
+                  setShowPlusMenu(false);
+                  setAiPhoneRequest({ msgId: 'proactive', personaId: currentPersona?.id || '' });
+                }} 
+                className="flex flex-col items-center gap-2"
+              >
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-neutral-700 shadow-sm">
+                  <Smartphone size={28} />
+                </div>
+                <span className="text-[12px] text-neutral-500">查我手机</span>
+              </button>
+
               <button 
                 onClick={() => {
                   setShowPlusMenu(false);

@@ -3086,7 +3086,7 @@ ${recentMsgs}`;
       {/* AI Phone Request Modal */}
       <AnimatePresence>
         {aiPhoneRequest && (
-          <div className="absolute inset-0 z-[10001] flex items-center justify-center p-8 bg-black/40 backdrop-blur-sm">
+          <div className="absolute inset-0 z-[10001] flex items-center justify-center p-8 bg-black/50 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -3094,7 +3094,9 @@ ${recentMsgs}`;
               className="bg-white rounded-[40px] w-full max-w-sm overflow-hidden shadow-2xl p-10 flex flex-col items-center text-center space-y-8"
             >
               <div className="w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center">
-                <PhoneIcon className="w-14 h-14 text-blue-500" />
+                <div className="w-20 h-20 bg-blue-100/50 rounded-full flex items-center justify-center">
+                  <PhoneIcon className="w-10 h-10 text-blue-500 fill-blue-500" />
+                </div>
               </div>
               
               <div className="space-y-3">
@@ -3112,7 +3114,7 @@ ${recentMsgs}`;
                     }
                     setAiPhoneRequest(null);
                   }}
-                  className="flex-1 py-4 bg-neutral-100 text-neutral-800 font-bold rounded-3xl active:scale-95 transition-transform text-[16px]"
+                  className="flex-1 py-4 bg-neutral-100 text-neutral-600 font-bold rounded-3xl active:scale-95 transition-transform text-[16px]"
                 >
                   拒绝
                 </button>
