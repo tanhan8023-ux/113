@@ -1549,7 +1549,7 @@ export default function App() {
     const newGroup: GroupChat = {
       id: generateId(),
       name,
-      memberIds: ['user', ...memberIds], // Always include user
+      memberIds: Array.from(new Set(['user', ...memberIds])), // Always include user, ensure unique
       ownerId: 'user',
       createdAt: Date.now()
     };

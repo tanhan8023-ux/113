@@ -66,12 +66,12 @@ export const ChatListView = ({
             <div className="relative shrink-0">
               <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center overflow-hidden border border-neutral-200">
                 <div className="grid grid-cols-2 gap-0.5 p-0.5 w-full h-full">
-                  {g.memberIds.slice(0, 4).map(mid => {
+                  {g.memberIds.slice(0, 4).map((mid, idx) => {
                     if (mid === 'user') {
-                      return <img key={mid} src={userProfile.avatarUrl || defaultUserAvatar} className="w-full h-full object-cover" alt="member" />;
+                      return <img key={`${mid}-${idx}`} src={userProfile.avatarUrl || defaultUserAvatar} className="w-full h-full object-cover" alt="member" />;
                     }
                     const p = personas.find(pers => pers.id === mid);
-                    return <img key={mid} src={p?.avatarUrl || defaultAiAvatar} className="w-full h-full object-cover" alt="member" />;
+                    return <img key={`${mid}-${idx}`} src={p?.avatarUrl || defaultAiAvatar} className="w-full h-full object-cover" alt="member" />;
                   })}
                 </div>
               </div>

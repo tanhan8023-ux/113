@@ -335,7 +335,7 @@ export function ChatScreen({
     }
   }, [currentChatId, messages]);
 
- // Check persona status when switching chat
+  // Check persona status when switching chat
   useEffect(() => {
     const persona = personas.find(p => p.id === currentChatId);
     if (persona) {
@@ -349,109 +349,6 @@ export function ChatScreen({
     }
   }, [currentChatId, personas, messages]);
 
-  // Group chat idle conversation starter
-  useEffect(() => {
-    if (!currentGroupId || !isActive || apiSettings.isProactiveMessagingEnabled === false) return;
-    
-    const currentGroup = groups.find(g => g.id === currentGroupId);
-    if (!currentGroup) return;
-
-    const intervalId = setInterval(async () => {
-      const lastMsg = messagesRef.current.filter(m => m.groupId === currentGroupId).pop();
-      if (!lastMsg) return;
-
-      const timeSinceLastMsg = Date.now() - (lastMsg.createdAt || 0);
-      if (timeSinceLastMsg > 10 * 60 * 1000 && Math.random() < 0.1) {
-        const otherMemberIds = currentGroup.memberIds.filter(id => id !== 'user');
-        if (otherMemberIds.length === 0) return;
-
-        const randomMemberId = otherMemberIds[Math.floor(Math.random() * otherMemberIds.length)];
-        const persona = personas.find(p => p.id === randomMemberId);
-        if (!persona) return;
-
-        const isOffline = await checkIfPersonaIsOffline(persona, apiSettings, worldbook, userProfile, aiRef, []);
-        if (isOffline) return;
-
-        const contextMessages = messagesRef.current
-          .filter(m => m.groupId === currentGroupId && !m.hidden)
-          .slice(-10)
-          .map(m => {
-            let role = (m.role === 'model' && m.personaId === persona.id) ? 'assistant' : 'user';
-            let content = m.text;
-            if (m.role === 'model') {
-              const sender = personas.find(p => p.id === m.personaId);
-              content = `[${sender?.name || '未知'}]: ${content}`;
-            } else {
-              content = `[用户]: ${content}`;
-            }
-            return { role, content };
-          });
-
-        const crossContextMemory = getCrossContextMemory(persona.id, currentGroupId);
-
-        const prompt = `[系统提示：这是一个名为"${currentGroup.name}"的群聊。群里已经安静了一段时间了。
-【重要提示】如果有人连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。
-你是群成员之一：${persona.name}。
-人设：${persona.instructions}${crossContextMemory}
-
-请根据你的性格以及【世界书】的全局规则，决定你现在是否要主动在群里找大家聊天、分享事情或者抛出一个新话题。
-- 如果你想主动说话，请直接输出你的发言内容。
-- 如果你觉得现在不想说话，请务必只输出 [NO_REPLY] 这几个字，不要输出任何其他内容。
-- 必须严格遵守【世界书】中的全局设定，无论是在对话风格还是行为准则上。]`;
-
-        try {
-          const response = await fetchAiResponse(prompt, contextMessages, persona, apiSettings, worldbook, userProfile, aiRef, true, "", apiSettings.apiUrl ? undefined : "gemini-3-flash-preview");
-          
-          if (!response.responseText.includes('[NO_REPLY]')) {
-            let responseText = response.responseText.replace('[NO_REPLY]', '').trim();
-            const prefix = `[${persona.name}]:`;
-            if (responseText.startsWith(prefix)) {
-              responseText = responseText.substring(prefix.length).trim();
-            }
-            const isSegment = persona.isSegmentResponse || worldbook.forceSegmentResponse;
-            const texts = isSegment ? responseText.split(/[\n\r]+|\\n/).filter(t => t.trim()) : [responseText];
-
-            (async () => {
-              for (let i = 0; i < texts.length; i++) {
-                let text = texts[i].replace('[NO_REPLY]', '').trim();
-                const prefix = `[${persona.name}]:`;
-                if (text.startsWith(prefix)) {
-                  text = text.substring(prefix.length).trim();
-                }
-                if (!text) continue;
-                
-                setIsTyping(true);
-                await new Promise(r => setTimeout(r, 1000 + text.length * 30));
-                setIsTyping(false);
-
-                const aiMsg: Message = {
-                  id: generateId(),
-                  personaId: persona.id,
-                  groupId: currentGroupId,
-                  role: 'model',
-                  text: text,
-                  msgType: 'text',
-                  timestamp: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
-                  isRead: false,
-                  createdAt: Date.now(),
-                };
-                
-                setMessages(prev => [...prev, aiMsg]);
-
-                if (i < texts.length - 1) {
-                  await new Promise(r => setTimeout(r, 2000 + Math.random() * 3000));
-                }
-              }
-            })();
-          }
-        } catch (e) {
-          console.error("Group idle starter error:", e);
-        }
-      }
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(intervalId);
-  }, [currentGroupId, isActive, groups, personas, apiSettings, worldbook, userProfile]);
   // Group chat idle conversation starter
   useEffect(() => {
     if (!currentGroupId || !isActive || apiSettings.isProactiveMessagingEnabled === false) return;
@@ -6381,11 +6278,11 @@ ${recentMessages}
             <div className="flex-1 overflow-y-auto bg-white">
               {/* Member Grid */}
               <div className="p-4 grid grid-cols-5 gap-4">
-                {currentGroup.memberIds.map(mid => {
+                {currentGroup.memberIds.map((mid, idx) => {
                   const isUser = mid === 'user';
                   const p = personas.find(pers => pers.id === mid);
                   return (
-                    <div key={mid} className="flex flex-col items-center gap-1">
+                    <div key={`${mid}-${idx}`} className="flex flex-col items-center gap-1">
                       <img 
                         src={isUser ? (userProfile.avatarUrl || defaultUserAvatar) : (p?.avatarUrl || defaultAiAvatar)} 
                         className="w-12 h-12 rounded-xl object-cover border border-neutral-100"
