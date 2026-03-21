@@ -66,10 +66,28 @@ async function callAi(params: {
       endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
     }
 
-    const messages = params.messages.map(m => ({
+    const rawMessages = params.messages.map(m => ({
       role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user',
-      content: m.content
+      content: m.content || " "
     }));
+
+    // Merge consecutive messages with the same role
+    const messages: any[] = [];
+    for (const msg of rawMessages) {
+      if (messages.length > 0 && messages[messages.length - 1].role === msg.role) {
+        const lastMsg = messages[messages.length - 1];
+        if (typeof lastMsg.content === 'string' && typeof msg.content === 'string') {
+          lastMsg.content += '\n' + msg.content;
+        } else {
+          const lastContentArray = Array.isArray(lastMsg.content) ? lastMsg.content : [{ type: 'text', text: lastMsg.content }];
+          const newContentArray = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: msg.content }];
+          lastMsg.content = [...lastContentArray, ...newContentArray];
+        }
+      } else {
+        messages.push({ ...msg });
+      }
+    }
+
     if (params.systemInstruction) {
       messages.unshift({ role: 'system', content: params.systemInstruction });
     }
@@ -95,16 +113,26 @@ async function callAi(params: {
     return data.choices?.[0]?.message?.content || "";
   } else {
     const ai = params.aiRef?.current || new GoogleGenAI({ apiKey: params.apiKey });
-    const contents = params.messages.map(m => ({
+    const rawContents = params.messages.map(m => ({
       role: m.role === 'model' || m.role === 'assistant' ? 'model' : 'user',
       parts: Array.isArray(m.content) ? m.content.map(c => {
         if (typeof c === 'object' && c.type === 'image_url') {
           const mimeMatch = c.image_url.url.match(/data:(image\/[^;]+);base64,/);
           return { inlineData: { mimeType: mimeMatch?.[1] || 'image/png', data: c.image_url.url.split(',')[1] } };
         }
-        return { text: typeof c === 'string' ? c : JSON.stringify(c) };
-      }) : [{ text: m.content }]
+        return { text: typeof c === 'string' ? (c || " ") : JSON.stringify(c) };
+      }) : [{ text: m.content || " " }]
     }));
+
+    // Merge consecutive contents with the same role
+    const contents: any[] = [];
+    for (const content of rawContents) {
+      if (contents.length > 0 && contents[contents.length - 1].role === content.role) {
+        contents[contents.length - 1].parts.push(...content.parts);
+      } else {
+        contents.push({ ...content, parts: [...content.parts] });
+      }
+    }
     
     const genAiPromise = ai.models.generateContent({
       model: params.model,

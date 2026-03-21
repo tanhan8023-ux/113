@@ -1860,11 +1860,12 @@ export default function App() {
           return;
         }
         console.error("AI Response Error:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         const errorMsg: Message = {
           id: generateId(),
           personaId,
           role: 'model',
-          text: '(网络错误，请重试)',
+          text: `(错误: ${errorMessage || '网络错误，请重试'})`,
           msgType: 'text',
           timestamp: new Date().toLocaleTimeString(),
           createdAt: Date.now(),
