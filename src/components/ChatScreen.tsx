@@ -758,7 +758,18 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
                     createdAt: Date.now(),
                   };
                   
-                  setMessages(prev => [...prev, aiMsg]);
+                  setMessages(prev => {
+                    // Mark previous messages as read by this persona
+                    const updatedMessages = prev.map(m => {
+                      if (m.groupId === currentGroupId && (m.createdAt || 0) <= (aiMsg.createdAt || 0)) {
+                        if (!m.readBy?.includes(persona.id)) {
+                          return { ...m, readBy: Array.from(new Set([...(m.readBy || []), persona.id])) };
+                        }
+                      }
+                      return m;
+                    });
+                    return [...updatedMessages, aiMsg];
+                  });
 
                   // Wait between segments
                   if (i < texts.length - 1) {
