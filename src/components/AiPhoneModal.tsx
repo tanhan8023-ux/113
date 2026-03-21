@@ -27,6 +27,8 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
   const [inputText, setInputText] = useState('');
   const [aiThought, setAiThought] = useState<string | null>(null);
   const [showThought, setShowThought] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [showConfirmCheck, setShowConfirmCheck] = useState(false);
   const aiRef = useRef<GoogleGenAI | null>(null);
   
   const defaultWallpaper = React.useMemo(() => {
@@ -251,7 +253,10 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
     };
   }, [persona, userProfile, allMessages]);
 
-  const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[]) => {
+  const [isChecking, setIsChecking] = useState(false);
+  const [showConfirmCheck, setShowConfirmCheck] = useState(false);
+
+  const generateAiThought = async (screen: AppScreen, contacts: any[], messages: any[], notes: any[], manualCheck = false) => {
       const apiKey = apiSettings.apiKey?.trim() || process.env.GEMINI_API_KEY as string;
       if (!apiKey) return;
       
@@ -263,6 +268,10 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
         return;
       }
     
+    if (manualCheck) {
+        setIsChecking(true);
+    }
+
     // 1. Analyze for suspicious activity
     const analysisPrompt = `你现在是 ${persona.name}。请分析以下手机数据，判断是否存在“小三”或“情敌”。
     数据：
@@ -295,11 +304,14 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
         onCreateGroup(groupName, memberIds);
         onSendMessageAsAi(analysis.firstMessage);
         onClose();
+        setIsChecking(false);
         return;
       }
     } catch (e) {
       console.error("Failed to analyze phone data:", e);
     }
+
+    setIsChecking(false);
 
     // 2. Generate normal thought
     const prompt = `你现在是 ${persona.name}，用户正在查看你的手机中的 ${screen} 页面。请用一句话简短地表达你此时的想法或心情，语气要符合你的人设。`;
@@ -317,11 +329,7 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
     }
   };
 
-  useEffect(() => {
-    if (activeScreen !== 'home') {
-      generateAiThought(activeScreen, contacts, messages, notes);
-    }
-  }, [activeScreen, contacts, messages, notes]);
+
 
   const handleUpdateSettings = (updates: Partial<NonNullable<Persona['aiPhoneSettings']>>) => {
     if (onUpdatePersona) {
@@ -816,6 +824,18 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
             </div>
             <ChevronLeft size={18} className="text-gray-300 rotate-180" />
           </button>
+          {/* AI Check Button */}
+          <button 
+            onClick={() => setShowConfirmCheck(true)}
+            className="w-full p-4 flex items-center justify-between border-b last:border-0 hover:bg-gray-50 text-blue-600 font-bold"
+          >
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 p-1.5 rounded-md">
+                <Smartphone size={18} className="text-white" />
+              </div>
+              <span className="font-medium">AI 检查手机</span>
+            </div>
+          </button>
           {[
             { icon: <Cpu className="text-white" />, label: "处理器负载", value: "0.002%", color: "bg-blue-500" },
             { icon: <HardDrive className="text-white" />, label: "存储空间", value: "8.4 PB", color: "bg-gray-500" },
@@ -833,6 +853,33 @@ export function AiPhoneModal({ persona, onClose, onUpdatePersona, allMessages, o
             </div>
           ))}
         </div>
+        
+        {/* Confirmation Dialog */}
+        {showConfirmCheck && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white p-6 rounded-2xl shadow-xl text-center">
+                    <h2 className="text-lg font-bold mb-4">AI 检查手机</h2>
+                    <p className="mb-6">AI 将分析手机数据，是否继续？</p>
+                    <div className="flex gap-4">
+                        <button onClick={() => setShowConfirmCheck(false)} className="flex-1 px-4 py-2 bg-gray-200 rounded-lg">取消</button>
+                        <button onClick={() => {
+                            setShowConfirmCheck(false);
+                            generateAiThought(activeScreen, contacts, messages, notes, true);
+                        }} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg">继续</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Checking Dialog */}
+        {isChecking && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white p-6 rounded-2xl shadow-xl text-center">
+                    <h2 className="text-lg font-bold mb-4">正在检查...</h2>
+                    <p>AI 正在深入分析手机数据，请稍候。</p>
+                </div>
+            </div>
+        )}
       </div>
     </div>
   );
