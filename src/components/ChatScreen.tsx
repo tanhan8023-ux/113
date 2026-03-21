@@ -390,6 +390,7 @@ export function ChatScreen({
         const crossContextMemory = getCrossContextMemory(persona.id, currentGroupId);
 
         const prompt = `[系统提示：这是一个名为"${currentGroup.name}"的群聊。群里已经安静了一段时间了。
+【重要提示】如果有人连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。
 你是群成员之一：${persona.name}。
 人设：${persona.instructions}${crossContextMemory}
 
@@ -494,6 +495,7 @@ export function ChatScreen({
         const crossContextMemory = getCrossContextMemory(persona.id, currentGroupId);
 
        const prompt = `[系统提示：这是一个名为"${currentGroup.name}"的群聊。以上是群聊记录。
+【重要提示】如果有人连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。
 你是群成员之一：${persona.name}。
 人设：${persona.instructions}${crossContextMemory}
 ${isOffline ? '【特殊提示】你当前处于“离线”状态，但有人在群里@了你。请根据你的人设决定是继续保持沉默、发个自动回复、还是被吵醒并回复。' : ''}
@@ -578,6 +580,16 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
 
     // Wait a very short amount of time (0.5-1.5 seconds) before deciding to reply
     const timer = setTimeout(async () => {
+      // Wait until the user finishes typing, max 10 seconds
+      let waitTime = 0;
+      while ((window as any).isUserTyping && !document.hidden && waitTime < 10000) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        waitTime += 500;
+        if (abortController.signal.aborted) {
+          return;
+        }
+      }
+
       const currentMessages = messagesRef.current;
       const latestMsg = currentMessages[currentMessages.length - 1];
       
@@ -643,6 +655,7 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
         const crossContextMemory = getCrossContextMemory(persona.id, currentGroupId);
 
         const prompt = `[系统提示：这是一个名为"${currentGroup.name}"的群聊。以上是群聊记录。
+【重要提示】如果有人连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。
 你是群成员之一：${persona.name}。
 人设：${persona.instructions}${crossContextMemory}
 ${isOffline ? '【特殊提示】你当前处于“离线”状态，但有人在群里@了你。请根据你的人设决定是继续保持沉默、发个自动回复、还是被吵醒并回复。' : ''}
@@ -705,12 +718,33 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
               // Send segments one by one with real delay to allow interleaving
               (async () => {
                 for (let i = 0; i < texts.length; i++) {
+                  // Wait if user is typing
+                  let typeWaitTime = 0;
+                  while ((window as any).isUserTyping && !document.hidden && typeWaitTime < 10000) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    typeWaitTime += 500;
+                    if (abortController.signal.aborted) {
+                      console.log(`Group spontaneous reply typing aborted for ${persona.name} while waiting for user`);
+                      return;
+                    }
+                  }
+
+                  if (abortController.signal.aborted) {
+                    console.log(`Group spontaneous reply typing aborted for ${persona.name}`);
+                    return;
+                  }
+
                   const text = texts[i];
                   
                   // Simulate typing
                   setIsTyping(true);
                   await new Promise(r => setTimeout(r, 300 + text.length * 10));
                   setIsTyping(false);
+
+                  if (abortController.signal.aborted) {
+                    console.log(`Group spontaneous reply typing aborted for ${persona.name}`);
+                    return;
+                  }
 
                   const aiMsg: Message = {
                     id: generateId(),
@@ -1230,6 +1264,9 @@ ${!isMentioned ? '- 如果你根据人设（比如正在忙、高冷、不想理
     const delayMs = (apiSettings.proactiveDelay || 10) * 60 * 1000;
 
     const timer = setTimeout(async () => {
+       // Do not proactively message if user is typing
+       if ((window as any).isUserTyping) return;
+
        // 50% chance to proactively message if idle for the specified delay
        if (Math.random() < 0.5 && currentPersona && currentPersona.allowActiveMessaging === true && !currentPersona.isOffline) {
           pendingRequests.current += 1;

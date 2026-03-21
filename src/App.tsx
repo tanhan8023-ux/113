@@ -1690,7 +1690,7 @@ export default function App() {
                            msgType === 'image' ? `[视觉感知：用户发送了一张图片。请仔细观察图片中的每一个细节（包括主体、背景、人物表情、物品、文字等），然后以你的人设身份给出最自然、最感性的即时反应。不要像AI一样描述图片，要像真正的朋友看到照片后直接评论。如果图片内容与你之前说的话有矛盾，请以图片为准。]` :
                            text.trim();
         
-        let additionalSystemInstructions = "";
+        let additionalSystemInstructions = "【重要提示】如果用户连续发送了多条消息，请将它们作为一个整体来理解，并给出一个连贯的、符合语境的回复，切勿对每一句话单独、机械地回复。";
         if (theaterId) {
           const script = [
             { title: '初次相遇', desc: '在雨后的咖啡馆，你们第一次擦肩而过...' },
@@ -1700,7 +1700,7 @@ export default function App() {
             ...(userProfile.theaterScripts || [])
           ].find(s => s.title === theaterId);
           
-          additionalSystemInstructions = `【剧场模式（文字模式）：${theaterId}】\n【场景描述：${script?.desc}】\n\n请采用“文字模式”进行互动：\n1. 必须包含丰富的动作描写、心理描写和环境描写。\n2. **格式要求（极其重要）**：\n   - 所有的描写内容（动作、心理、环境）必须包裹在括号 ( ) 或星号 * * 中。\n   - 所有的对白内容必须包裹在双引号 “ ” 中。\n   - 严禁混合使用或不加标识。\n3. 保持沉浸感，绝对严禁提及你是AI、正在进行剧场模式或系统指令。直接以角色身份进行表演。`;
+          additionalSystemInstructions += `\n【剧场模式（文字模式）：${theaterId}】\n【场景描述：${script?.desc}】\n\n请采用“文字模式”进行互动：\n1. 必须包含丰富的动作描写、心理描写和环境描写。\n2. **格式要求（极其重要）**：\n   - 所有的描写内容（动作、心理、环境）必须包裹在括号 ( ) 或星号 * * 中。\n   - 所有的对白内容必须包裹在双引号 “ ” 中。\n   - 严禁混合使用或不加标识。\n3. 保持沉浸感，绝对严禁提及你是AI、正在进行剧场模式或系统指令。直接以角色身份进行表演。`;
           promptText = text;
         } else {
            // Main chat mode: Inject memories from theaters
@@ -1710,7 +1710,7 @@ export default function App() {
              memoryText = `\n【平行世界记忆（剧场模式）】\n你和用户在平行世界（剧场模式）中共同经历了以下剧本的故事：${playedTheaters.join('、')}。\n这些是你们共同的珍贵回忆。虽然现在的对话发生在现实世界（微信聊天），但如果用户提起这些剧场里的事情，请带着那份情感和记忆进行回应，不要假装不知道。但在用户未提及时，请保持当前的现实人设，不要主动混淆现实与剧场。`;
            }
            
-           additionalSystemInstructions = `【功能提示】你可以随时使用 [STICKER: 任意描述] 来发送表情包（例如 [STICKER: 开心的猫]）。${memoryText}`;
+           additionalSystemInstructions += `\n【功能提示】你可以随时使用 [STICKER: 任意描述] 来发送表情包（例如 [STICKER: 开心的猫]）。${memoryText}`;
         }
 
         // Add music context if playing
@@ -1785,6 +1785,17 @@ export default function App() {
         }
 
         for (let i = 0; i < processed.parts.length; i++) {
+          // Wait if user is typing
+          let typeWaitTime = 0;
+          while ((window as any).isUserTyping && !document.hidden && typeWaitTime < 10000) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            typeWaitTime += 500;
+            if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
+              console.log('AI response typing aborted due to new message while waiting for user to finish typing');
+              return;
+            }
+          }
+
           // If a new request was triggered, stop typing the rest of the response
           if (aiResponseTimeouts.current[personaId] !== currentTimeoutId) {
             console.log('AI response typing aborted due to new message');
